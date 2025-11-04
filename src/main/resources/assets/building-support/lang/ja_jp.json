@@ -1,0 +1,21 @@
+{
+    "itemGroup.building-support.favorites": "お気に入り",
+    "itemGroup.building-support.wood_building": "木材建築ブロック",
+    "itemGroup.building-support.stone_building": "石材建築ブロック",
+    "itemGroup.building-support.copper_building": "銅建築ブロック",
+    "itemGroup.building-support.nether_building": "ネザー建築ブロック",
+    "itemGroup.building-support.end_building": "エンド建築ブロック",
+    "key.building-support.add_favorite": "お気に入りを切り替え",
+    "key.category.building-support.favorites": "ビルディングサポート",
+    "message.building-support.favorite.require_creative": "クリエイティブインベントリを開いている間のみ使用できます",
+    "message.building-support.favorite.no_item": "カーソルが指しているスロットにアイテムがありません",
+    "message.building-support.favorite.added": "%s をお気に入りに追加しました",
+    "message.building-support.favorite.removed": "%s をお気に入りから削除しました",
+    "command.building-support.favorite.added": "%s をお気に入りに追加しました",
+    "command.building-support.favorite.exists": "%s は既にお気に入りです",
+    "command.building-support.favorite.removed": "%s をお気に入りから削除しました",
+    "command.building-support.favorite.missing": "%s はお気に入りに登録されていません",
+    "command.building-support.favorite.list": "お気に入り: %s",
+    "command.building-support.favorite.list.empty": "お気に入りはまだ登録されていません",
+    "command.building-support.favorite.cleared": "お気に入りを全て解除しました"
+}
