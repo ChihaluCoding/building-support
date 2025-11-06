@@ -18,26 +18,17 @@ import net.minecraft.world.gen.structure.Structure;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 public final class VillageSpawnManager {
 	private static final VillageSpawnManager INSTANCE = new VillageSpawnManager();
-	private static final int[] SPAWN_SEARCH_RADII = {64, 128, 256};
-	private static final int[] EXTENDED_SEARCH_RADII = {64, 96, 128, 160, 192, 224, 256, 320};
-	private static final int SEARCH_CENTER_STEP = 512;
-	private static final BlockPos[] SEARCH_CENTER_OFFSETS = {
-		BlockPos.ORIGIN,
-		new BlockPos(SEARCH_CENTER_STEP, 0, 0),
-		new BlockPos(-SEARCH_CENTER_STEP, 0, 0),
-		new BlockPos(0, 0, SEARCH_CENTER_STEP),
-		new BlockPos(0, 0, -SEARCH_CENTER_STEP),
-		new BlockPos(SEARCH_CENTER_STEP, 0, SEARCH_CENTER_STEP),
-		new BlockPos(SEARCH_CENTER_STEP, 0, -SEARCH_CENTER_STEP),
-		new BlockPos(-SEARCH_CENTER_STEP, 0, SEARCH_CENTER_STEP),
-		new BlockPos(-SEARCH_CENTER_STEP, 0, -SEARCH_CENTER_STEP)
-	};
+	private static final int DEFAULT_SEARCH_DISTANCE = 640;
+	private static final int WORLD_SPAWN_SEARCH_DISTANCE = 5000;
+	private static final int MIN_SEARCH_DISTANCE = 128;
+	private static final int MAX_SEARCH_DISTANCE = 16000;
 
 	private VillageSpawnManager() {
 	}
@@ -62,36 +53,53 @@ public final class VillageSpawnManager {
 		}
 
 		BuildingSupportConfig.VillageSpawnType desiredType = config.getVillageSpawnType();
-		Optional<BlockPos> spawnPos = findNthNearestVillage(overworld, BlockPos.ORIGIN, desiredType, 0);
-		if (spawnPos.isEmpty()) {
-			BuildingSupport.LOGGER.warn("���X�|�[����{}�ŒT�����܂������A�����ɍ�������������܂���ł����B�����̃X�|�[���n�_���ێ����܂��B", desiredType.id());
+		Optional<VillageLocation> location = findNthNearestVillage(overworld, BlockPos.ORIGIN, desiredType, 0, WORLD_SPAWN_SEARCH_DISTANCE);
+		if (location.isEmpty()) {
+			BuildingSupport.LOGGER.warn("村スポーンを {} で検索しましたが、近くに見つかりませんでした。既存のスポーン地点を保持します。", desiredType.id());
 			return;
 		}
 
-		setWorldSpawn(server, overworld, spawnPos.get());
-		BuildingSupport.LOGGER.info("�X�|�[���n�_��{}�̑� ({}) �ɐݒ肵�܂����B", desiredType.id(), spawnPos.get());
+		setWorldSpawn(server, overworld, location.get().spawnPos());
+		BuildingSupport.LOGGER.info("村スポーン地点を {} の村 ({}) に設定しました。", desiredType.id(), location.get().spawnPos());
 	}
 
-	public Optional<BlockPos> findNthNearestVillage(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int index) {
+	public Optional<VillageLocation> findNthNearestVillage(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int index) {
+		return findNthNearestVillage(world, origin, type, index, DEFAULT_SEARCH_DISTANCE);
+	}
+
+	public Optional<VillageLocation> findNthNearestVillage(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int index, int maxDistance) {
 		if (index < 0) {
 			return Optional.empty();
 		}
+		List<VillageLocation> locations = findNearestVillages(world, origin, type, Math.max(index + 3, 3), maxDistance);
+		if (locations.size() <= index) {
+			return Optional.empty();
+		}
+		return Optional.of(locations.get(index));
+	}
+
+	public List<VillageLocation> findNearestVillages(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int requiredCount) {
+		return findNearestVillages(world, origin, type, requiredCount, DEFAULT_SEARCH_DISTANCE);
+	}
+
+	public List<VillageLocation> findNearestVillages(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int requiredCount, int maxDistance) {
+		int count = Math.max(requiredCount, 1);
+		int cappedDistance = Math.max(MIN_SEARCH_DISTANCE, Math.min(maxDistance, MAX_SEARCH_DISTANCE));
 
 		Optional<RegistryEntry<Structure>> structureEntry = resolveStructureEntry(world, type);
 		if (structureEntry.isEmpty()) {
-			return Optional.empty();
+			return List.of();
 		}
 
 		RegistryEntryList<Structure> structures = RegistryEntryList.of(structureEntry.get());
 		ChunkGenerator generator = world.getChunkManager().getChunkGenerator();
 		Set<Long> visited = new HashSet<>();
-		List<Pair<BlockPos, BlockPos>> candidates = new ArrayList<>();
-		int requiredCount = Math.max(index + 3, 3);
-		BlockPos[] centers = createSearchCenters(origin);
+		List<VillageLocation> candidates = new ArrayList<>();
+		BlockPos[] centers = createSearchCenters(origin, cappedDistance);
+		int[] radii = generateSearchRadii(cappedDistance);
 
 		search:
 		for (BlockPos center : centers) {
-			int[] radii = isOrigin(center) ? SPAWN_SEARCH_RADII : EXTENDED_SEARCH_RADII;
 			for (int radius : radii) {
 				Pair<BlockPos, RegistryEntry<Structure>> located = generator.locateStructure(world, structures, center, radius, false);
 				if (located == null) {
@@ -106,20 +114,20 @@ public final class VillageSpawnManager {
 
 				world.getChunk(chunkPos.x, chunkPos.z);
 				BlockPos spawnPos = adjustSpawnPosition(world, structurePos);
-				candidates.add(Pair.of(structurePos, spawnPos));
+				candidates.add(new VillageLocation(structurePos, spawnPos));
 
-				if (candidates.size() >= requiredCount) {
+				if (candidates.size() >= count) {
 					break search;
 				}
 			}
 		}
 
-		if (candidates.size() <= index) {
-			return Optional.empty();
+		if (candidates.isEmpty()) {
+			return List.of();
 		}
 
-		candidates.sort(Comparator.comparingDouble(candidate -> candidate.getFirst().getSquaredDistance(origin)));
-		return Optional.of(candidates.get(index).getSecond());
+		candidates.sort(Comparator.comparingDouble(candidate -> candidate.structurePos().getSquaredDistance(origin)));
+		return candidates;
 	}
 
 	private Optional<RegistryEntry<Structure>> resolveStructureEntry(ServerWorld world, BuildingSupportConfig.VillageSpawnType type) {
@@ -132,17 +140,68 @@ public final class VillageSpawnManager {
 		return registry.getEntry(structureKey.getValue()).map(entry -> (RegistryEntry<Structure>) entry);
 	}
 
-	private BlockPos[] createSearchCenters(BlockPos origin) {
-		BlockPos[] centers = new BlockPos[SEARCH_CENTER_OFFSETS.length];
-		for (int i = 0; i < SEARCH_CENTER_OFFSETS.length; i++) {
-			BlockPos offset = SEARCH_CENTER_OFFSETS[i];
-			centers[i] = origin.add(offset.getX(), offset.getY(), offset.getZ());
+	private BlockPos[] createSearchCenters(BlockPos origin, int maxDistance) {
+		LinkedHashSet<BlockPos> centers = new LinkedHashSet<>();
+		centers.add(origin);
+		int[] axisOffsets = generateAxisOffsets(maxDistance);
+		for (int x : axisOffsets) {
+			for (int z : axisOffsets) {
+				if (x == 0 && z == 0) {
+					continue;
+				}
+				centers.add(origin.add(x, 0, z));
+			}
 		}
-		return centers;
+		return centers.toArray(new BlockPos[0]);
 	}
 
-	private boolean isOrigin(BlockPos pos) {
-		return pos.getX() == 0 && pos.getY() == 0 && pos.getZ() == 0;
+	private int[] generateSearchRadii(int maxDistance) {
+		LinkedHashSet<Integer> radii = new LinkedHashSet<>();
+		int capped = Math.max(MIN_SEARCH_DISTANCE, maxDistance);
+		int roughStep = Math.max(MIN_SEARCH_DISTANCE, capped / 8);
+		int step = Math.max(MIN_SEARCH_DISTANCE, ((roughStep + 63) / 64) * 64);
+		for (int radius = step; radius < capped; radius += step) {
+			radii.add(radius);
+		}
+		radii.add(capped);
+		return radii.stream().mapToInt(Integer::intValue).toArray();
+	}
+
+	private int[] generateAxisOffsets(int maxDistance) {
+		LinkedHashSet<Integer> offsets = new LinkedHashSet<>();
+		offsets.add(0);
+		int capped = Math.max(0, maxDistance);
+		int step = determineCenterStep(capped);
+		if (step > 0) {
+			for (int value = step; value < capped; value += step) {
+				offsets.add(value);
+				offsets.add(-value);
+			}
+		}
+		if (capped > 0) {
+			offsets.add(capped);
+			offsets.add(-capped);
+		}
+		return offsets.stream().mapToInt(Integer::intValue).toArray();
+	}
+
+	private int determineCenterStep(int maxDistance) {
+		if (maxDistance <= 0) {
+			return 0;
+		}
+		if (maxDistance <= 512) {
+			return 256;
+		}
+		if (maxDistance <= 1500) {
+			return 512;
+		}
+		if (maxDistance <= 3000) {
+			return 750;
+		}
+		if (maxDistance <= 5000) {
+			return 1000;
+		}
+		return 1500;
 	}
 
 	private BlockPos adjustSpawnPosition(ServerWorld world, BlockPos structurePos) {
@@ -154,5 +213,11 @@ public final class VillageSpawnManager {
 		world.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
 		String command = String.format("setworldspawn %d %d %d", pos.getX(), pos.getY(), pos.getZ());
 		server.getCommandManager().executeWithPrefix(server.getCommandSource().withLevel(2), command);
+	}
+
+	public record VillageLocation(BlockPos structurePos, BlockPos spawnPos) {
+		public ChunkPos chunkPos() {
+			return new ChunkPos(structurePos);
+		}
 	}
 }

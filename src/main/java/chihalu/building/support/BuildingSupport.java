@@ -46,7 +46,7 @@ public class BuildingSupport implements ModInitializer {
 		HistoryManager.getInstance().initialize();
 		VillageSpawnManager.getInstance().initialize();
 		registerItemGroups(favoritesManager);
-		registerCommands(favoritesManager, presetManager);
+		registerCommands(presetManager);
 		registerEvents();
 		LOGGER.info("Building Support mod initialized");
 	}
@@ -111,9 +111,7 @@ public class BuildingSupport implements ModInitializer {
 				.build());
 	}
 
-	private void registerCommands(FavoritesManager favoritesManager, CommandPresetManager presetManager) {
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
-			FavoritesCommand.register(dispatcher, registryAccess, favoritesManager));
+	private void registerCommands(CommandPresetManager presetManager) {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 			PresetCommand.register(dispatcher, presetManager));
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
