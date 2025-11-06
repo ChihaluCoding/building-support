@@ -9,7 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
 /**
- * ジ・エンド関連の建築ブロックをまとめたユーティリティ。
+ * ジ・エンド関連の建材をまとめたユーティリティ。
  */
 public final class EndBuildingItems {
 	private static final List<ItemStack> END_BLOCKS = buildEndBlockList();

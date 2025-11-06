@@ -25,6 +25,7 @@ public final class BuildingSupportConfig {
 		.resolve(BuildingSupport.MOD_ID + "-config.json");
 
 	private boolean preventIceMelting = false;
+	private boolean autoLightCandles = false;
 
 	private BuildingSupportConfig() {
 	}
@@ -42,6 +43,7 @@ public final class BuildingSupportConfig {
 			SerializableData data = gson.fromJson(reader, SerializableData.class);
 			if (data != null) {
 				this.preventIceMelting = data.preventIceMelting;
+				this.autoLightCandles = data.autoLightCandles;
 			}
 		} catch (IOException | JsonSyntaxException exception) {
 			getLogger().error("設定ファイルの読み込みに失敗しました: {}", configPath, exception);
@@ -51,7 +53,7 @@ public final class BuildingSupportConfig {
 	public synchronized void save() {
 		try {
 			Files.createDirectories(configPath.getParent());
-			SerializableData data = new SerializableData(preventIceMelting);
+			SerializableData data = new SerializableData(preventIceMelting, autoLightCandles);
 			try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
 			}
@@ -71,15 +73,28 @@ public final class BuildingSupportConfig {
 		}
 	}
 
+	public synchronized boolean isAutoLightCandlesEnabled() {
+		return autoLightCandles;
+	}
+
+	public synchronized void setAutoLightCandlesEnabled(boolean enabled) {
+		if (this.autoLightCandles != enabled) {
+			this.autoLightCandles = enabled;
+			save();
+		}
+	}
+
 	private Logger getLogger() {
 		return BuildingSupport.LOGGER;
 	}
 
 	private static final class SerializableData {
 		private boolean preventIceMelting;
+		private boolean autoLightCandles;
 
-		private SerializableData(boolean preventIceMelting) {
+		private SerializableData(boolean preventIceMelting, boolean autoLightCandles) {
 			this.preventIceMelting = preventIceMelting;
+			this.autoLightCandles = autoLightCandles;
 		}
 	}
 }

@@ -182,5 +182,4 @@ public class BuildingSupportClient implements ClientModInitializer {
 			searchStacks.add(stack.copy());
 		}
 	}
-
 }

@@ -9,7 +9,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
 /**
- * 石材系建築ブロックの一覧を管理するユーティリティ。
+ * 石材建材のリストを管理するユーティリティ。
  */
 public final class StoneBuildingItems {
 	private static final List<ItemStack> STONE_BLOCKS = buildStoneBlockList();

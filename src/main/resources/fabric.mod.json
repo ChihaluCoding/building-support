@@ -3,7 +3,7 @@
 	"id": "building-support",
 	"version": "${version}",
 	"name": "Building Support",
-	"description": "/busp help でコマンド一覧を表示します。",
+	"description": "ユーティリティーMod",
 	"authors": [
 		"chihalu"
 	],
