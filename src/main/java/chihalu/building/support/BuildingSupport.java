@@ -43,7 +43,7 @@ public class BuildingSupport implements ModInitializer {
 		favoritesManager.reload();
 		CommandPresetManager presetManager = CommandPresetManager.getInstance();
 		presetManager.reload();
-		HistoryManager.getInstance().reload();
+		HistoryManager.getInstance().initialize();
 		registerItemGroups(favoritesManager);
 		registerCommands(favoritesManager, presetManager);
 		registerEvents();

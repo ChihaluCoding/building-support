@@ -125,7 +125,7 @@ public final class FavoritesManager {
 			}
 		}
 
-		return new ItemStack(Items.NETHER_STAR);
+		return new ItemStack(Items.LARGE_AMETHYST_BUD);
 	}
 
 	public synchronized List<ItemStack> getFavoriteStacks() {
@@ -142,7 +142,7 @@ public final class FavoritesManager {
 	public synchronized List<ItemStack> getDisplayStacksForTab() {
 		List<ItemStack> stacks = getFavoriteStacks();
 		if (stacks.isEmpty()) {
-			stacks.add(new ItemStack(Items.NETHER_STAR));
+			stacks.add(new ItemStack(Items.LARGE_AMETHYST_BUD));
 		}
 		return stacks;
 	}

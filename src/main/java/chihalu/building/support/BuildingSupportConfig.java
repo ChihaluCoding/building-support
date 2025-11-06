@@ -26,6 +26,7 @@ public final class BuildingSupportConfig {
 
 	private boolean preventIceMelting = false;
 	private boolean autoLightCandles = false;
+	private HistoryDisplayMode historyDisplayMode = HistoryDisplayMode.PER_WORLD;
 
 	private BuildingSupportConfig() {
 	}
@@ -44,6 +45,7 @@ public final class BuildingSupportConfig {
 			if (data != null) {
 				this.preventIceMelting = data.preventIceMelting;
 				this.autoLightCandles = data.autoLightCandles;
+				this.historyDisplayMode = data.historyDisplayMode == null ? HistoryDisplayMode.PER_WORLD : data.historyDisplayMode;
 			}
 		} catch (IOException | JsonSyntaxException exception) {
 			getLogger().error("設定ファイルの読み込みに失敗しました: {}", configPath, exception);
@@ -53,7 +55,7 @@ public final class BuildingSupportConfig {
 	public synchronized void save() {
 		try {
 			Files.createDirectories(configPath.getParent());
-			SerializableData data = new SerializableData(preventIceMelting, autoLightCandles);
+			SerializableData data = new SerializableData(preventIceMelting, autoLightCandles, historyDisplayMode);
 			try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
 			}
@@ -84,6 +86,20 @@ public final class BuildingSupportConfig {
 		}
 	}
 
+	public synchronized HistoryDisplayMode getHistoryDisplayMode() {
+		return historyDisplayMode;
+	}
+
+	public synchronized void setHistoryDisplayMode(HistoryDisplayMode mode) {
+		if (mode == null) {
+			return;
+		}
+		if (this.historyDisplayMode != mode) {
+			this.historyDisplayMode = mode;
+			save();
+		}
+	}
+
 	private Logger getLogger() {
 		return BuildingSupport.LOGGER;
 	}
@@ -91,10 +107,27 @@ public final class BuildingSupportConfig {
 	private static final class SerializableData {
 		private boolean preventIceMelting;
 		private boolean autoLightCandles;
+		private HistoryDisplayMode historyDisplayMode;
 
-		private SerializableData(boolean preventIceMelting, boolean autoLightCandles) {
+		private SerializableData(boolean preventIceMelting, boolean autoLightCandles, HistoryDisplayMode historyDisplayMode) {
 			this.preventIceMelting = preventIceMelting;
 			this.autoLightCandles = autoLightCandles;
+			this.historyDisplayMode = historyDisplayMode;
+		}
+	}
+
+	public enum HistoryDisplayMode {
+		PER_WORLD("per_world"),
+		ALL_WORLD("all_world");
+
+		private final String suffix;
+
+		HistoryDisplayMode(String suffix) {
+			this.suffix = suffix;
+		}
+
+		public String translationKey() {
+			return "config.building-support.history_display_mode." + suffix;
 		}
 	}
 }

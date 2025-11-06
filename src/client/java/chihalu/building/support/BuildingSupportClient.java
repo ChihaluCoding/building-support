@@ -1,12 +1,14 @@
 package chihalu.building.support;
 
 import java.util.List;
+import java.nio.file.Path;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.MinecraftClient;
@@ -14,6 +16,7 @@ import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -23,6 +26,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 
 import chihalu.building.support.mixin.client.CreativeInventoryScreenInvoker;
@@ -31,6 +35,7 @@ import chihalu.building.support.mixin.client.HandledScreenAccessor;
 public class BuildingSupportClient implements ClientModInitializer {
 	private static final KeyBinding.Category FAVORITE_CATEGORY = KeyBinding.Category.create(BuildingSupport.id("favorites"));
 	private KeyBinding toggleFavoriteKey;
+	private static String currentWorldKey = null;
 
 	@Override
 	public void onInitializeClient() {
@@ -67,6 +72,17 @@ public class BuildingSupportClient implements ClientModInitializer {
 		});
 
 		registerUsageEvents();
+
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+			client.execute(() -> {
+				currentWorldKey = resolveWorldKey(client, handler);
+				HistoryManager.getInstance().setActiveWorldKey(currentWorldKey);
+				List<ItemStack> historyStacks = updateHistoryGroupStacks();
+				if (client.currentScreen instanceof CreativeInventoryScreen creativeScreen) {
+					refreshHistoryTabIfSelected(creativeScreen, historyStacks);
+				}
+			});
+		});
 	}
 
 	private void handleToggleFavorite(MinecraftClient client, CreativeInventoryScreen screen) {
@@ -181,5 +197,50 @@ public class BuildingSupportClient implements ClientModInitializer {
 		for (ItemStack stack : newStacks) {
 			searchStacks.add(stack.copy());
 		}
+	}
+
+	public static void onHistoryModeChanged() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		HistoryManager.getInstance().reloadActive();
+		List<ItemStack> historyStacks = updateHistoryGroupStacks();
+		if (client.currentScreen instanceof CreativeInventoryScreen creativeScreen) {
+			refreshHistoryTabIfSelected(creativeScreen, historyStacks);
+		}
+	}
+
+	private static String resolveWorldKey(MinecraftClient client, ClientPlayNetworkHandler handler) {
+		if (client.getServer() != null) {
+			String levelName = client.getServer().getSaveProperties().getLevelName();
+			String absolutePath = "";
+			try {
+				Path path = client.getServer().getSavePath(WorldSavePath.ROOT);
+				if (path != null) {
+					Path dir = path.getFileName();
+					if (dir != null && !dir.toString().isBlank() && !dir.toString().equals(".")) {
+						absolutePath = dir.toString();
+					} else {
+						absolutePath = path.toAbsolutePath().normalize().toString();
+					}
+				}
+			} catch (Exception ignored) {
+			}
+			return "singleplayer:" + levelName + ":" + absolutePath;
+		}
+
+		if (client.getCurrentServerEntry() != null) {
+			String address = client.getCurrentServerEntry().address == null ? "unknown" : client.getCurrentServerEntry().address;
+			String name = client.getCurrentServerEntry().name == null ? "unnamed" : client.getCurrentServerEntry().name;
+			return "multiplayer:" + address + ":" + name;
+		}
+
+		if (handler != null && handler.getConnection().getAddress() != null) {
+			return "direct:" + handler.getConnection().getAddress().toString();
+		}
+
+		if (handler != null && handler.getWorld() != null) {
+			return "world:" + handler.getWorld().getRegistryKey().getValue().toString();
+		}
+
+		return "unknown_world";
 	}
 }

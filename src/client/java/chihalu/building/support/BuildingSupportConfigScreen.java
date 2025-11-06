@@ -16,7 +16,8 @@ public class BuildingSupportConfigScreen extends Screen {
 	private enum Category {
 		ROOT,
 		ENVIRONMENT,
-		AUTOMATION
+		AUTOMATION,
+		INVENTORY_CONTROL
 	}
 
 	public BuildingSupportConfigScreen(Screen parent) {
@@ -33,7 +34,7 @@ public class BuildingSupportConfigScreen extends Screen {
 		currentCategory = Category.ROOT;
 		clearScreen();
 		int centerX = width / 2;
-		int startY = height / 2 - 24;
+		int startY = height / 2 - 36;
 
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.building-support.category.environment"),
 			button -> openEnvironment())
@@ -45,8 +46,13 @@ public class BuildingSupportConfigScreen extends Screen {
 			.dimensions(centerX - 100, startY + 12, 200, 20)
 			.build());
 
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.building-support.category.inventory_control"),
+			button -> openInventoryControl())
+			.dimensions(centerX - 100, startY + 36, 200, 20)
+			.build());
+
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> close())
-			.dimensions(centerX - 100, startY + 48, 200, 20)
+			.dimensions(centerX - 100, startY + 84, 200, 20)
 			.build());
 
 		setFocused(null);
@@ -110,6 +116,39 @@ public class BuildingSupportConfigScreen extends Screen {
 		setFocused(null);
 	}
 
+	private void openInventoryControl() {
+		currentCategory = Category.INVENTORY_CONTROL;
+		clearScreen();
+		int centerX = width / 2;
+		int startY = height / 2 - 10;
+		var config = BuildingSupportConfig.getInstance();
+
+		CyclingButtonWidget<BuildingSupportConfig.HistoryDisplayMode> modeButton =
+			CyclingButtonWidget.<BuildingSupportConfig.HistoryDisplayMode>builder(mode -> Text.translatable(mode.translationKey()))
+				.values(BuildingSupportConfig.HistoryDisplayMode.values())
+				.initially(config.getHistoryDisplayMode())
+				.build(centerX - 100, startY, 200, 20,
+					Text.translatable("config.building-support.history_display_mode"),
+					(button, value) -> {
+						BuildingSupportConfig.getInstance().setHistoryDisplayMode(value);
+						BuildingSupportClient.onHistoryModeChanged();
+						button.setFocused(false);
+						setFocused(null);
+					});
+		modeButton.setFocused(false);
+		addDrawableChild(modeButton);
+
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.building-support.back_to_categories"),
+			button -> {
+				setFocused(null);
+				openRoot();
+			})
+			.dimensions(centerX - 100, startY + 32, 200, 20)
+			.build());
+
+		setFocused(null);
+	}
+
 	private void clearScreen() {
 		clearChildren();
 	}
@@ -138,6 +177,8 @@ public class BuildingSupportConfigScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.building-support.category.environment"), width / 2, 50, 0xFFFFFF);
 		} else if (currentCategory == Category.AUTOMATION) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.building-support.category.automation"), width / 2, 50, 0xFFFFFF);
+		} else if (currentCategory == Category.INVENTORY_CONTROL) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.building-support.category.inventory_control"), width / 2, 50, 0xFFFFFF);
 		}
 
 		super.render(context, mouseX, mouseY, delta);
