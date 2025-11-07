@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.history;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -20,6 +20,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+
+import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.config.BuildingSupportConfig;
 
 public final class HistoryManager {
 	private static final HistoryManager INSTANCE = new HistoryManager();

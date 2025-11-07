@@ -1,6 +1,6 @@
 package chihalu.building.support.mixin;
 
-import chihalu.building.support.BuildingSupportConfig;
+import chihalu.building.support.config.BuildingSupportConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.CandleCakeBlock;

@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,9 +14,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import chihalu.building.support.BuildingSupport;
+
 /**
- * Mod全体の設定を管理するクラス。
- */
+ * Mod蜈ｨ菴薙・險ｭ螳壹ｒ邂｡逅・☆繧九け繝ｩ繧ｹ縲・ */
 public final class BuildingSupportConfig {
 	private static final BuildingSupportConfig INSTANCE = new BuildingSupportConfig();
 
@@ -55,7 +56,7 @@ public final class BuildingSupportConfig {
 				this.pottedPlantPickPrefersPot = data.pottedPlantPickPrefersPot;
 			}
 		} catch (IOException | JsonSyntaxException exception) {
-			getLogger().error("設定ファイルの読み込みに失敗しました: {}", configPath, exception);
+			getLogger().error("險ｭ螳壹ヵ繧｡繧､繝ｫ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆: {}", configPath, exception);
 		}
 	}
 
@@ -74,7 +75,7 @@ public final class BuildingSupportConfig {
 				gson.toJson(data, writer);
 			}
 		} catch (IOException exception) {
-			getLogger().error("設定ファイルの保存に失敗しました: {}", configPath, exception);
+			getLogger().error("險ｭ螳壹ヵ繧｡繧､繝ｫ縺ｮ菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆: {}", configPath, exception);
 		}
 	}
 

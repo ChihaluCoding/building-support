@@ -29,6 +29,8 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 
+import chihalu.building.support.favorites.FavoritesManager;
+import chihalu.building.support.history.HistoryManager;
 import chihalu.building.support.mixin.client.CreativeInventoryScreenInvoker;
 import chihalu.building.support.mixin.client.HandledScreenAccessor;
 

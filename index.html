@@ -1,109 +1,65 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Building Support mod ガイド</title>
-    <link rel="stylesheet" href="web%20site/style.css">
+	<meta charset="UTF-8">
+	<title>Building Support 機能一覧</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="web site/style.css">
 </head>
 <body>
-    <header>
-        <h1>Building Support</h1>
-        <p>
-            Building Supportは、建築やワールド編集をサポートするFabric用マインクラフトmodです。
-            クリエイティブインベントリにお気に入りタブを追加し、よく使うブロックを素早く呼び出せるほか、
-            建築や村人スポーン補助のための便利なコマンドや履歴管理機能をまとめて提供します。
-        </p>
-    </header>
+	<div id="loader">
+		<div class="loader-frame">
+			<h4>Loading World...</h4>
+			<div class="progress-bar">
+				<div class="progress-fill"></div>
+			</div>
+		</div>
+		<div class="tips" data-tips='["夜はベッドで安全確保！","水バケツがあれば落下も安心。","シフトでブロック端から落ちないぞ！","村の鐘を鳴らすと皆が家に戻るよ。"]'>TIP: ...</div>
+	</div>
+	<div class="hud">
+		<div class="panel hearts"><span class="icons">❤❤❤❤❤❤❤❤❤❤</span></div>
+		<div class="panel hunger"><span class="icons">🍖🍖🍖🍖🍖🍖🍖🍖🍖🍖</span></div>
+		<div class="panel xp">Lv 27</div>
+	</div>
+	<main>
+		<header>
+			<h1><span>Building Support</span> 機能カタログ</h1>
+			<p>ビルド作業をなめらかにするためのツールをカテゴリ別に紹介します。設定メニューやキーバインドと併せて、好きな遊び方にカスタマイズしてください。</p>
+		</header>
 
-    <nav>
-        <ul>
-            <li><a href="#overview">概要</a></li>
-            <li><a href="#features">主な機能</a></li>
-            <li><a href="#favorites">お気に入りタブ</a></li>
-            <li><a href="#history">履歴と記録</a></li>
-            <li><a href="#commands">コマンド</a></li>
-            <li><a href="#config">設定</a></li>
-            <li><a href="#faq">FAQ</a></li>
-        </ul>
-    </nav>
+	<section>
+		<h2>機能アクセス</h2>
+		<div class="ui-panel">
+			<div class="slot-grid">
+				<a class="slot" href="web site/inventory.html">
+					<div class="label">Inventory</div>
+					<div class="description">お気に入り・履歴・建築タブを管理する機能一式。</div>
+				</a>
+				<a class="slot" href="web site/automation.html">
+					<div class="label">Automation</div>
+					<div class="description">ろうそく自動点灯や氷保護など建築補助の詳細。</div>
+				</a>
+				<a class="slot" href="web site/commands.html">
+					<div class="label">Commands</div>
+					<div class="description">コマンドプリセットと村ワープの使いこなしガイド。</div>
+				</a>
+			</div>
+		</div>
+	</section>
 
-    <main>
-        <section id="overview" class="section">
-            <h2>概要</h2>
-            <p>
-                マインクラフト1.21.9以降に対応したBuilding Supportは、建築作業のテンポを落とさないことを目標に設計されています。
-                クリエイティブインベントリに新設される「お気に入りタブ」に、任意のブロックやアイテムを登録可能です。
-                タブ内ではカテゴリや検索を気にせず素早くアクセスできます。
-            </p>
-            <div class="badge-list">
-                <span class="badge">対応バージョン: 1.21.9</span>
-                <span class="badge">プラットフォーム: Fabric</span>
-            </div>
-        </section>
+	<footer>
+		<p>&copy; Building Support Mod</p>
+	</footer>
+</main>
 
-        <section id="features" class="section">
-            <h2>主な機能</h2>
-            <div class="grid two-columns">
-                <div class="feature-card">
-                    <h3>お気に入りタブ</h3>
-                    <p>好きなブロックをクリエイティブインベントリに追加できます</p>
-                </div>
-                <div class="feature-card">
-                    <h3>履歴タブ</h3>
-                    <p>履歴を記録して、過去に使ったアイテムセットを後から呼び出せるようにします。
-                        <br>ワールドごと / 全ワールド共通 </p>
-                </div>
-            </div>
-        </section>
-
-        <section id="favorites" class="section">
-            <h2>お気に入りタブの使い方</h2>
-            <div class="callout">
-                <strong>ポイント:</strong> お気に入りタブは建築作業前に使うアイテムを登録しておくと、アイデアの流れを止めずに建築を進められます。
-            </div>
-            <ol class="steps">
-                <li>クリエイティブインベントリを開き、お気に入りに入れたいアイテムの上にカーソルをホバーして、Bキーを押す。</li>
-            </ol>
-        </section>
-
-        <section id="commands" class="section">
-            <h2>コマンド一覧</h2>
-            <p>以下は主なコマンドの概要です。詳細な引数はゲーム内のタブ補完で確認できます。</p>
-            <div class="grid two-columns command-list">
-                <div class="feature-card">
-                    <h3>お気に入り・履歴</h3>
-                    <p><code>/busp favorite add</code> 登録中のインベントリ内容をお気に入りに追加します。</p>
-                    <p><code>/busp history list</code> 利用可能な履歴を一覧表示します。</p>
-                </div>
-                <div class="feature-card">
-                    <h3>村関連</h3>
-                    <p><code>/village</code> 2番目に近い村にテレポートします。</p>
-                    <p><code>/village new <検索範囲ブロック数></code> 未訪問の村を検索してテレポートします。
-                        <br>※数値5000以上は非推奨※</p>
-                </div>
-            </div>
-            <p>
-                コマンドはOP権限が必要です。マルチサーバーではサーバー管理者に権限設定を依頼してください。
-            </p>
-        </section>
-
-        <section id="config" class="section">
-            <h2>設定</h2>
-            <p>
-                モッド設定はクライアント側GUIから変更可能です。Fabric APIとMod Menuを導入している場合、Mod Menuの設定画面からBuilding Supportを選択すると専用の設定画面が開きます。
-            </p>
-            <div class="grid two-columns">
-                <div class="feature-card">
-                    <h3>表示設定</h3>
-                    <p>お気に入りタブの並び順や表示数、履歴の自動保存タイミングを調整できます。</p>
-                </div>
-                <div class="feature-card">
-                    <h3>履歴管理</h3>
-                    <p>履歴ファイルの最大保存件数や自動クリーンアップ間隔を指定できます。</p>
-                </div>
-            </div>
-        </section>
-    </main>
+<script>
+	const loader = document.getElementById("loader");
+	const tipBox = document.querySelector("#loader .tips");
+	const tipData = JSON.parse(tipBox.dataset.tips);
+	tipBox.textContent = "TIP: " + tipData[Math.floor(Math.random() * tipData.length)];
+	window.addEventListener("load", () => {
+		setTimeout(() => loader.classList.add("hidden"), 1500);
+	});
+</script>
 </body>
 </html>

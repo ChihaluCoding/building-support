@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -17,6 +17,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.village.VillageSpawnManager;
+import chihalu.building.support.village.VillageVisitTracker;
 
 public final class VillageCommand {
 	private static final int NEW_VILLAGE_CHECK_COUNT = 32;

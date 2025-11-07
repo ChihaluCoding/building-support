@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.village;
 
 import com.mojang.datafixers.util.Pair;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -22,6 +22,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.config.BuildingSupportConfig;
 
 public final class VillageSpawnManager {
 	private static final VillageSpawnManager INSTANCE = new VillageSpawnManager();

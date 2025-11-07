@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.command;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -18,6 +18,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import chihalu.building.support.BuildingSupport;
 
 public final class CommandPresetManager {
 	private static final CommandPresetManager INSTANCE = new CommandPresetManager();

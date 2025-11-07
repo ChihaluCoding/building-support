@@ -41,11 +41,11 @@
   "config.building-support.prevent_ice_melting": "氷の融解を防止",
   "config.building-support.prevent_ice_melting.tooltip": "オンにすると、氷や霜が周囲の環境で溶けにくくなります。",
 
-  "config.building-support.auto_light_candles": "ろうそくを自動で点灯",
-  "config.building-support.auto_light_candles.tooltip": "オンにすると、ろうそくやケーキ付きろうそくに右クリックした際に自動で点灯します。",
+  "config.building-support.auto_light_candles": "ろうそくの自動点灯",
+  "config.building-support.auto_light_candles.tooltip": "オンにすると、置いただけでろうそくが自動的に点灯します。",
 
   "config.building-support.potted_pick_prefers_pot": "植木鉢の優先度変更",
-  "config.building-support.potted_pick_prefers_pot.tooltip": "オンにすると、花が植わった植木鉢をホイールクリックした際に鉢本体を取得します。花部分を狙うか、スニークしながらホイールクリックすると花を取得します。",
+  "config.building-support.potted_pick_prefers_pot.tooltip": "オンにすると、花が植わった植木鉢をホイールクリックした際に鉢本体を取得します。スニークしながらホイールクリックすると花を取得します。",
 
   "config.building-support.spawn.force_village": "ワールド生成時に村へスポーン",
   "config.building-support.spawn.force_village.tooltip": "オンにすると、ワールド生成時に設定したバイオームの村をスポーン地点に設定します。",

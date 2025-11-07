@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.favorites;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -19,6 +19,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+
+import chihalu.building.support.BuildingSupport;
 
 public final class FavoritesManager {
 	private static final FavoritesManager INSTANCE = new FavoritesManager();

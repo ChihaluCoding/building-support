@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.itemgroup;
 
 import java.util.ArrayList;
 import java.util.Collections;

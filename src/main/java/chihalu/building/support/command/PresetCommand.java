@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.command;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;

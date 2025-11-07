@@ -1,4 +1,4 @@
-package chihalu.building.support;
+package chihalu.building.support.village;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.datafixer.DataFixTypes;
@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.config.BuildingSupportConfig;
 
 public final class VillageVisitTracker extends PersistentState {
 	private static final String STORAGE_KEY = BuildingSupport.MOD_ID + "_village_visits";

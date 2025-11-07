@@ -24,6 +24,20 @@ import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import chihalu.building.support.command.CommandPresetManager;
+import chihalu.building.support.command.PresetCommand;
+import chihalu.building.support.command.VillageCommand;
+import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.favorites.FavoritesManager;
+import chihalu.building.support.history.HistoryManager;
+import chihalu.building.support.itemgroup.CopperBuildingItems;
+import chihalu.building.support.itemgroup.EndBuildingItems;
+import chihalu.building.support.itemgroup.LightBuildingItems;
+import chihalu.building.support.itemgroup.NetherBuildingItems;
+import chihalu.building.support.itemgroup.StoneBuildingItems;
+import chihalu.building.support.itemgroup.WoodBuildingItems;
+import chihalu.building.support.village.VillageSpawnManager;
+
 public class BuildingSupport implements ModInitializer {
 	public static final String MOD_ID = "building-support";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);

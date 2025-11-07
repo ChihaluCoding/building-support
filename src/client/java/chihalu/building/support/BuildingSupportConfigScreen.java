@@ -8,6 +8,8 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.text.Text;
 
+import chihalu.building.support.config.BuildingSupportConfig;
+
 @Environment(EnvType.CLIENT)
 public class BuildingSupportConfigScreen extends Screen {
 	private final Screen parent;
