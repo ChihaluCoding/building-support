@@ -14,7 +14,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,7 +22,6 @@ import chihalu.building.support.village.VillageSpawnManager;
 import chihalu.building.support.village.VillageVisitTracker;
 
 public final class VillageCommand {
-	private static final int NEW_VILLAGE_CHECK_COUNT = 32;
 	private static final int DEFAULT_NEW_VILLAGE_DISTANCE = 640;
 	private static final int MIN_NEW_VILLAGE_DISTANCE = 128;
 	private static final int MAX_NEW_VILLAGE_DISTANCE = 16000;
@@ -72,13 +70,15 @@ public final class VillageCommand {
 		BuildingSupportConfig.VillageSpawnType type = BuildingSupportConfig.getInstance().getVillageSpawnType();
 		VillageVisitTracker tracker = VillageVisitTracker.get(world);
 		int cappedDistance = clampDistance(distance);
-		List<VillageSpawnManager.VillageLocation> locations = villageSpawnManager.findNearestVillages(world, player.getBlockPos(), type, NEW_VILLAGE_CHECK_COUNT, cappedDistance);
-
-		for (VillageSpawnManager.VillageLocation location : locations) {
-			if (tracker.isVisited(player.getUuid(), world, type, location)) {
-				continue;
-			}
-			return performTeleport(source, player, world, type, location, tracker);
+		Optional<VillageSpawnManager.VillageLocation> location = villageSpawnManager.findNearestVillageMatching(
+			world,
+			player.getBlockPos(),
+			type,
+			cappedDistance,
+			candidate -> !tracker.isVisited(player.getUuid(), world, type, candidate)
+		);
+		if (location.isPresent()) {
+			return performTeleport(source, player, world, type, location.get(), tracker);
 		}
 
 		source.sendFeedback(() -> Text.translatable("command.utility-toolkit.village.no_new"), false);

@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -22,11 +23,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class MemoCommand {
 	private static final Map<UUID, String> EDIT_SESSIONS = new ConcurrentHashMap<>();
+	private static boolean cleanupRegistered = false;
 
 	private MemoCommand() {
 	}
 
 	public static void register(CommandDispatcher<ServerCommandSource> dispatcher, MemoManager memoManager) {
+		ensureSessionCleanupHook();
 		dispatcher.register(CommandManager.literal("memo")
 			.requires(source -> source.hasPermissionLevel(0))
 			.then(CommandManager.literal("add")
@@ -43,6 +46,21 @@ public final class MemoCommand {
 					.executes(context -> editMemo(context, memoManager))))
 			.then(CommandManager.literal("list")
 				.executes(context -> listMemos(context.getSource(), memoManager))));
+	}
+
+	/**
+	 * プレイヤー切断時に編集セッションを確実に破棄してリークを防ぐ。
+	 */
+	private static void ensureSessionCleanupHook() {
+		if (cleanupRegistered) {
+			return;
+		}
+		cleanupRegistered = true;
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			if (handler.player != null) {
+				EDIT_SESSIONS.remove(handler.player.getUuid());
+			}
+		});
 	}
 
 	private static int addMemo(CommandContext<ServerCommandSource> context, MemoManager manager) {

@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import chihalu.building.support.BuildingSupport;
 import chihalu.building.support.config.BuildingSupportConfig;
@@ -56,6 +57,11 @@ public final class VillageSpawnManager {
 		}
 
 		BuildingSupportConfig.VillageSpawnType desiredType = config.getVillageSpawnType();
+		VillageSpawnState spawnState = VillageSpawnState.get(overworld);
+		if (spawnState.hasApplied(desiredType.id())) {
+			BuildingSupport.LOGGER.info("Automatic village spawn adjustment already applied for type {}. Skipping.", desiredType.id());
+			return;
+		}
 		Optional<VillageLocation> location = findNthNearestVillage(overworld, BlockPos.ORIGIN, desiredType, 0, WORLD_SPAWN_SEARCH_DISTANCE);
 		if (location.isEmpty()) {
 			BuildingSupport.LOGGER.warn("村スポーンを {} で検索しましたが、近くに見つかりませんでした。既存のスポーン地点を保持します。", desiredType.id());
@@ -63,6 +69,7 @@ public final class VillageSpawnManager {
 		}
 
 		setWorldSpawn(server, overworld, location.get().spawnPos());
+		spawnState.markApplied(desiredType.id());
 		BuildingSupport.LOGGER.info("村スポーン地点を {} の村 ({}) に設定しました。", desiredType.id(), location.get().spawnPos());
 	}
 
@@ -87,17 +94,53 @@ public final class VillageSpawnManager {
 
 	public List<VillageLocation> findNearestVillages(ServerWorld world, BlockPos origin, BuildingSupportConfig.VillageSpawnType type, int requiredCount, int maxDistance) {
 		int count = Math.max(requiredCount, 1);
+		List<VillageLocation> candidates = new ArrayList<>();
+		searchVillages(world, origin, type, maxDistance, location -> {
+			candidates.add(location);
+			return candidates.size() >= count;
+		});
+		if (candidates.isEmpty()) {
+			return List.of();
+		}
+		candidates.sort(Comparator.comparingDouble(candidate -> candidate.structurePos().getSquaredDistance(origin)));
+		return candidates;
+	}
+
+	public Optional<VillageLocation> findNearestVillageMatching(
+		ServerWorld world,
+		BlockPos origin,
+		BuildingSupportConfig.VillageSpawnType type,
+		int maxDistance,
+		Predicate<VillageLocation> predicate
+	) {
+		VillageLocation[] match = new VillageLocation[1];
+		searchVillages(world, origin, type, maxDistance, location -> {
+			if (predicate.test(location)) {
+				match[0] = location;
+				return true;
+			}
+			return false;
+		});
+		return Optional.ofNullable(match[0]);
+	}
+
+	private void searchVillages(
+		ServerWorld world,
+		BlockPos origin,
+		BuildingSupportConfig.VillageSpawnType type,
+		int maxDistance,
+		VillageSearchConsumer consumer
+	) {
 		int cappedDistance = Math.max(MIN_SEARCH_DISTANCE, Math.min(maxDistance, MAX_SEARCH_DISTANCE));
 
 		Optional<RegistryEntry<Structure>> structureEntry = resolveStructureEntry(world, type);
 		if (structureEntry.isEmpty()) {
-			return List.of();
+			return;
 		}
 
 		RegistryEntryList<Structure> structures = RegistryEntryList.of(structureEntry.get());
 		ChunkGenerator generator = world.getChunkManager().getChunkGenerator();
 		Set<Long> visited = new HashSet<>();
-		List<VillageLocation> candidates = new ArrayList<>();
 		BlockPos[] centers = createSearchCenters(origin, cappedDistance);
 		int[] radii = generateSearchRadii(cappedDistance);
 
@@ -117,20 +160,13 @@ public final class VillageSpawnManager {
 
 				world.getChunk(chunkPos.x, chunkPos.z);
 				BlockPos spawnPos = adjustSpawnPosition(world, structurePos);
-				candidates.add(new VillageLocation(structurePos, spawnPos));
+				VillageLocation location = new VillageLocation(structurePos, spawnPos);
 
-				if (candidates.size() >= count) {
+				if (consumer.accept(location)) {
 					break search;
 				}
 			}
 		}
-
-		if (candidates.isEmpty()) {
-			return List.of();
-		}
-
-		candidates.sort(Comparator.comparingDouble(candidate -> candidate.structurePos().getSquaredDistance(origin)));
-		return candidates;
 	}
 
 	private Optional<RegistryEntry<Structure>> resolveStructureEntry(ServerWorld world, BuildingSupportConfig.VillageSpawnType type) {
@@ -218,9 +254,17 @@ public final class VillageSpawnManager {
 		server.getCommandManager().executeWithPrefix(server.getCommandSource().withLevel(2), command);
 	}
 
+	@FunctionalInterface
+	private interface VillageSearchConsumer {
+		/**
+		 * 見つかった村を受け取り、true を返すと探索を打ち切る。
+		 */
+		boolean accept(VillageLocation location);
+	}
 	public record VillageLocation(BlockPos structurePos, BlockPos spawnPos) {
 		public ChunkPos chunkPos() {
 			return new ChunkPos(structurePos);
 		}
 	}
 }
+

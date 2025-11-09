@@ -3,7 +3,7 @@
 	"id": "utility-toolkit",
 	"version": "${version}",
 	"name": "Utility Toolkit",
-	"description": "建築作業を多面的に補助するユーティリティMod",
+	"description": "ユーティリティMod",
 	"authors": [
 		"chihalu"
 	],

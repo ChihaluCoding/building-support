@@ -16,12 +16,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import chihalu.building.support.BuildingSupport;
 import chihalu.building.support.config.BuildingSupportConfig;
@@ -32,6 +36,7 @@ public final class HistoryManager {
 	private static final int MAX_HISTORY = 64;
 	private static final String DEFAULT_WORLD_KEY = "unknown_world";
 	private static final String ALL_WORLD_FILE_NAME = "all_world.json";
+	private static final String GLOBAL_HISTORY_WORLD_KEY = "global_history";
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private final Path historyDir = BuildingSupportStorage.resolve("history");
@@ -39,6 +44,17 @@ public final class HistoryManager {
 	private final Deque<Identifier> recentItems = new ArrayDeque<>();
 	private Path activeHistoryPath = getWorldHistoryPath(DEFAULT_WORLD_KEY);
 	private String activeWorldKey = DEFAULT_WORLD_KEY;
+	// 履歴ファイルの読み書きをメインスレッドから切り離すための専用I/Oスレッド
+	private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor(r -> {
+		Thread thread = new Thread(r, "UtilityToolkit-HistoryIO");
+		thread.setDaemon(true);
+		return thread;
+	});
+	// 全ワールド履歴をキャッシュして繰り返しのディスクI/Oを避ける
+	private final Object globalCacheLock = new Object();
+	private Deque<Identifier> globalHistoryCache = new ArrayDeque<>();
+	private FileTime globalCacheTimestamp = FileTime.fromMillis(0L);
+	private boolean globalCacheInitialized = false;
 
 	private HistoryManager() {
 	}
@@ -74,7 +90,9 @@ public final class HistoryManager {
 		}
 
 		updateDeque(recentItems, id);
-		saveHistory(activeHistoryPath, recentItems);
+		Path historyPath = activeHistoryPath;
+		String worldKeySnapshot = activeWorldKey;
+		saveHistoryAsync(historyPath, recentItems, worldKeySnapshot);
 		updateGlobalHistory(id);
 	}
 
@@ -122,7 +140,7 @@ public final class HistoryManager {
 		Path globalPath = getGlobalHistoryPath();
 		Deque<Identifier> global = loadHistory(globalPath);
 		updateDeque(global, id);
-		saveHistory(globalPath, global);
+		saveHistoryAsync(globalPath, global, GLOBAL_HISTORY_WORLD_KEY);
 	}
 
 	public synchronized boolean resetHistory(Path historyPath) {
@@ -145,6 +163,9 @@ public final class HistoryManager {
 		// 共有履歴ファイルとワールド別履歴ファイルを両方削除してリセットとみなす
 		boolean deletedGlobal = deleteHistoryFile(getGlobalHistoryPath());
 		boolean deletedWorlds = deleteWorldHistoryFiles();
+		if (deletedGlobal) {
+			invalidateGlobalCache();
+		}
 		return deletedGlobal || deletedWorlds;
 	}
 
@@ -170,10 +191,21 @@ public final class HistoryManager {
 		return deletedAny;
 	}
 
+	private void invalidateGlobalCache() {
+		synchronized (globalCacheLock) {
+			globalHistoryCache = new ArrayDeque<>();
+			globalCacheTimestamp = FileTime.fromMillis(0L);
+			globalCacheInitialized = false;
+		}
+	}
+
 	private boolean deleteHistoryFile(Path path) {
 		try {
-			Files.deleteIfExists(path);
-			return true;
+			boolean deleted = Files.deleteIfExists(path);
+			if (deleted && path.equals(getGlobalHistoryPath())) {
+				invalidateGlobalCache();
+			}
+			return deleted;
 		} catch (IOException exception) {
 			BuildingSupport.LOGGER.error("Failed to delete history data: {}", path, exception);
 			return false;
@@ -211,6 +243,36 @@ public final class HistoryManager {
 	}
 
 	private Deque<Identifier> loadHistory(Path path) {
+		if (path.equals(getGlobalHistoryPath())) {
+			return loadGlobalHistoryWithCache();
+		}
+		return readHistoryFromDisk(path);
+	}
+
+	private Deque<Identifier> loadGlobalHistoryWithCache() {
+		Path globalPath = getGlobalHistoryPath();
+		FileTime lastModified = getFileTimestamp(globalPath);
+		synchronized (globalCacheLock) {
+			if (!globalCacheInitialized || !Objects.equals(lastModified, globalCacheTimestamp)) {
+				Deque<Identifier> loaded = readHistoryFromDisk(globalPath);
+				globalHistoryCache = new ArrayDeque<>(loaded);
+				globalCacheTimestamp = lastModified;
+				globalCacheInitialized = true;
+				return new ArrayDeque<>(loaded);
+			}
+			return new ArrayDeque<>(globalHistoryCache);
+		}
+	}
+
+	private FileTime getFileTimestamp(Path path) {
+		try {
+			return Files.exists(path) ? Files.getLastModifiedTime(path) : FileTime.fromMillis(0L);
+		} catch (IOException exception) {
+			return FileTime.fromMillis(0L);
+		}
+	}
+
+	private Deque<Identifier> readHistoryFromDisk(Path path) {
 		Deque<Identifier> deque = new ArrayDeque<>();
 		Optional<SerializableData> data = readSerializableData(path);
 		if (data.isEmpty() || data.get().items == null) {
@@ -230,15 +292,35 @@ public final class HistoryManager {
 		return deque;
 	}
 
-	private void saveHistory(Path path, Deque<Identifier> deque) {
+	/**
+	 * メインスレッドで収集した履歴内容を即座にスナップショットし、I/O専用スレッドで非同期保存する。
+	 */
+	private void saveHistoryAsync(Path path, Deque<Identifier> deque, String worldKey) {
+		Deque<Identifier> snapshot = new ArrayDeque<>(deque);
+		ioExecutor.execute(() -> writeHistorySnapshot(path, snapshot, worldKey));
+	}
+
+	private void writeHistorySnapshot(Path path, Deque<Identifier> snapshot, String worldKey) {
 		try {
 			Files.createDirectories(historyDir);
-			SerializableData data = new SerializableData(deque.stream().map(Identifier::toString).toList(), activeWorldKey);
+			SerializableData data = new SerializableData(snapshot.stream().map(Identifier::toString).toList(), worldKey);
 			try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
 			}
+			if (path.equals(getGlobalHistoryPath())) {
+				updateGlobalCacheFromSnapshot(snapshot, path);
+			}
 		} catch (IOException exception) {
 			BuildingSupport.LOGGER.error("Failed to save history data: {}", path, exception);
+		}
+	}
+
+	private void updateGlobalCacheFromSnapshot(Deque<Identifier> snapshot, Path path) {
+		FileTime timestamp = getFileTimestamp(path);
+		synchronized (globalCacheLock) {
+			globalHistoryCache = new ArrayDeque<>(snapshot);
+			globalCacheTimestamp = timestamp;
+			globalCacheInitialized = true;
 		}
 	}
 
