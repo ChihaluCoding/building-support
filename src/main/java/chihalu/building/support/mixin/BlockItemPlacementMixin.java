@@ -1,5 +1,6 @@
 package chihalu.building.support.mixin;
 
+import chihalu.building.support.BuildingSupport;
 import chihalu.building.support.config.BuildingSupportConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -35,6 +36,10 @@ public abstract class BlockItemPlacementMixin {
 
 		BlockPos placementPos = context.getBlockPos();
 		BlockState state = serverWorld.getBlockState(placementPos);
+		if (BuildingSupport.isAutoLightVanillaRestricted() && !BuildingSupport.isVanillaBlock(state.getBlock())) {
+			return;
+		}
+
 		if (state.getBlock() instanceof CandleCakeBlock && state.contains(CandleCakeBlock.LIT) && !state.get(CandleCakeBlock.LIT)) {
 			serverWorld.setBlockState(placementPos, state.with(CandleCakeBlock.LIT, true), Block.NOTIFY_ALL);
 		}

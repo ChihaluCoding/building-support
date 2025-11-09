@@ -3,8 +3,8 @@ package chihalu.building.support.mixin;
 import chihalu.building.support.config.BuildingSupportConfig;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FlowerPotBlock;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.FlowerPotBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PickItemFromBlockC2SPacket;
@@ -21,7 +21,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 @Mixin(ServerPlayNetworkHandler.class)
 public abstract class ServerPlayNetworkHandlerMixin {
@@ -31,23 +30,25 @@ public abstract class ServerPlayNetworkHandlerMixin {
 	public ServerPlayerEntity player;
 
 	@Shadow
-	private void onPickItem(ItemStack stack) {
-	}
+	protected abstract void onPickItem(ItemStack stack);
 
-	@Inject(
-		method = "onPickItemFromBlock",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/block/BlockState;getPickStack(Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;Z)Lnet/minecraft/item/ItemStack;"
-		),
-		locals = LocalCapture.CAPTURE_FAILHARD,
-		cancellable = true
-	)
-	private void building_support$adjustPottedPlantPick(PickItemFromBlockC2SPacket packet, CallbackInfo ci, ServerWorld serverWorld, BlockPos blockPos, BlockState blockState, boolean includeData) {
+	@Inject(method = "onPickItemFromBlock", at = @At("HEAD"), cancellable = true)
+	private void building_support$adjustPottedPlantPick(PickItemFromBlockC2SPacket packet, CallbackInfo ci) {
 		if (!BuildingSupportConfig.getInstance().isPottedPlantPickPrefersPot()) {
 			return;
 		}
 
+		ServerWorld serverWorld = this.player.getEntityWorld();
+		if (serverWorld == null) {
+			return;
+		}
+
+		BlockPos blockPos = packet.pos();
+		if (!this.player.canInteractWithBlockAt(blockPos, 1.0) || !serverWorld.isPosLoaded(blockPos)) {
+			return;
+		}
+
+		BlockState blockState = serverWorld.getBlockState(blockPos);
 		Block block = blockState.getBlock();
 		if (!(block instanceof FlowerPotBlock potBlock) || potBlock.getContent() == Blocks.AIR) {
 			return;
@@ -93,4 +94,5 @@ public abstract class ServerPlayNetworkHandlerMixin {
 
 		return relativeY > 0.375D && blockHitResult.getSide() == Direction.UP;
 	}
+
 }

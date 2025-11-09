@@ -7,12 +7,10 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
@@ -29,6 +27,8 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 
+import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.config.BuildingSupportConfig.ItemGroupOption;
 import chihalu.building.support.favorites.FavoritesManager;
 import chihalu.building.support.history.HistoryManager;
 import chihalu.building.support.mixin.client.CreativeInventoryScreenInvoker;
@@ -38,6 +38,13 @@ public class BuildingSupportClient implements ClientModInitializer {
 	private static final KeyBinding.Category FAVORITE_CATEGORY = KeyBinding.Category.create(BuildingSupport.id("favorites"));
 	private KeyBinding toggleFavoriteKey;
 	private static String currentWorldKey = null;
+	public static boolean hasActiveWorld() {
+		return currentWorldKey != null;
+	}
+
+	public static String getCurrentWorldKey() {
+		return currentWorldKey == null ? "" : currentWorldKey;
+	}
 
 	@Override
 	public void onInitializeClient() {
@@ -47,7 +54,6 @@ public class BuildingSupportClient implements ClientModInitializer {
 			GLFW.GLFW_KEY_B,
 			FAVORITE_CATEGORY
 		));
-
 		ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
 			ScreenKeyboardEvents.beforeKeyPress(screen).register(new ScreenKeyboardEvents.BeforeKeyPress() {
 				@Override
@@ -66,11 +72,6 @@ public class BuildingSupportClient implements ClientModInitializer {
 					handleToggleFavorite(client, creativeScreen);
 				}
 			});
-
-			ScreenMouseEvents.afterMouseClick(screen).register((currentScreen, click, consumed) -> {
-				handleHistoryClick(currentScreen, click);
-				return consumed;
-			});
 		});
 
 		registerUsageEvents();
@@ -85,9 +86,28 @@ public class BuildingSupportClient implements ClientModInitializer {
 				}
 			});
 		});
+
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+			client.execute(() -> {
+				currentWorldKey = null;
+				HistoryManager.getInstance().setActiveWorldKey(null);
+				BuildingSupportClient.onHistoryModeChanged();
+			});
+		});
+
+		InventoryTabVisibilityController.reloadFromConfig();
+
 	}
 
 	private void handleToggleFavorite(MinecraftClient client, CreativeInventoryScreen screen) {
+		BuildingSupportConfig config = BuildingSupportConfig.getInstance();
+		if (!config.isItemGroupEnabled(ItemGroupOption.FAVORITES)) {
+			if (client.player != null) {
+				client.player.sendMessage(Text.translatable("message.building-support.favorite.tab_disabled"), false);
+			}
+			return;
+		}
+
 		Slot slot = ((HandledScreenAccessor) screen).building_support$getFocusedSlot();
 		if (slot == null || !slot.hasStack()) {
 			client.player.sendMessage(Text.translatable("message.building-support.favorite.no_item"), false);
@@ -108,32 +128,12 @@ public class BuildingSupportClient implements ClientModInitializer {
 
 		ItemGroup favoritesGroup = Registries.ITEM_GROUP.get(BuildingSupport.FAVORITES_ITEM_GROUP_KEY);
 		var favoritesStacks = manager.getDisplayStacksForTab();
-
 		replaceGroupStacks(favoritesGroup, favoritesStacks);
 
 		ItemGroup currentTab = CreativeInventoryScreenInvoker.building_support$getSelectedTab();
-
 		if (currentTab == favoritesGroup) {
 			((CreativeInventoryScreenInvoker) screen).building_support$refreshSelectedTab(favoritesStacks);
 		}
-	}
-
-	private void handleHistoryClick(net.minecraft.client.gui.screen.Screen currentScreen, Click click) {
-		if (!(currentScreen instanceof CreativeInventoryScreen creativeScreen)) {
-			return;
-		}
-
-		Slot slot = ((HandledScreenAccessor) creativeScreen).building_support$getFocusedSlot();
-		if (slot == null || !slot.hasStack()) {
-			return;
-		}
-
-		ItemStack stack = slot.getStack();
-		if (stack.isEmpty()) {
-			return;
-		}
-
-		recordHistoryUsage(stack);
 	}
 
 	private void registerUsageEvents() {
@@ -168,6 +168,10 @@ public class BuildingSupportClient implements ClientModInitializer {
 	}
 
 	private static List<ItemStack> updateHistoryGroupStacks() {
+		BuildingSupportConfig config = BuildingSupportConfig.getInstance();
+		if (!config.isItemGroupEnabled(ItemGroupOption.HISTORY)) {
+			return List.of();
+		}
 		ItemGroup historyGroup = Registries.ITEM_GROUP.get(BuildingSupport.HISTORY_ITEM_GROUP_KEY);
 		List<ItemStack> historyStacks = HistoryManager.getInstance().getDisplayStacksForTab();
 		replaceGroupStacks(historyGroup, historyStacks);
@@ -175,6 +179,9 @@ public class BuildingSupportClient implements ClientModInitializer {
 	}
 
 	private static void refreshHistoryTabIfSelected(CreativeInventoryScreen screen, List<ItemStack> historyStacks) {
+		if (!BuildingSupportConfig.getInstance().isItemGroupEnabled(ItemGroupOption.HISTORY)) {
+			return;
+		}
 		ItemGroup historyGroup = Registries.ITEM_GROUP.get(BuildingSupport.HISTORY_ITEM_GROUP_KEY);
 		ItemGroup currentTab = CreativeInventoryScreenInvoker.building_support$getSelectedTab();
 		if (currentTab == historyGroup) {
@@ -240,4 +247,5 @@ public class BuildingSupportClient implements ClientModInitializer {
 
 		return "unknown_world";
 	}
+
 }

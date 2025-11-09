@@ -1,5 +1,6 @@
 package chihalu.building.support.mixin;
 
+import chihalu.building.support.BuildingSupport;
 import chihalu.building.support.config.BuildingSupportConfig;
 import net.minecraft.block.AbstractCandleBlock;
 import net.minecraft.block.BlockState;
@@ -19,8 +20,14 @@ public abstract class CandleBlockPlacementMixin {
 		}
 
 		BlockState state = cir.getReturnValue();
-		if (state != null && state.contains(AbstractCandleBlock.LIT) && !state.get(AbstractCandleBlock.LIT)) {
-			cir.setReturnValue(state.with(AbstractCandleBlock.LIT, true));
+		if (state == null || !state.contains(AbstractCandleBlock.LIT) || state.get(AbstractCandleBlock.LIT)) {
+			return;
 		}
+
+		if (BuildingSupport.isAutoLightVanillaRestricted() && !BuildingSupport.isVanillaBlock(state.getBlock())) {
+			return;
+		}
+
+		cir.setReturnValue(state.with(AbstractCandleBlock.LIT, true));
 	}
 }

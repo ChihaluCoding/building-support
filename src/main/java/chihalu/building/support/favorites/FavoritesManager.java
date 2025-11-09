@@ -3,10 +3,9 @@ package chihalu.building.support.favorites;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
@@ -21,14 +20,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.BuildingSupportStorage;
 
 public final class FavoritesManager {
 	private static final FavoritesManager INSTANCE = new FavoritesManager();
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	private final Path configPath = FabricLoader.getInstance()
-		.getConfigDir()
-		.resolve(BuildingSupport.MOD_ID + "-favorites.json");
+	private final Path configPath = BuildingSupportStorage.resolve("favorites.json");
 	private final LinkedHashSet<Identifier> favorites = new LinkedHashSet<>();
 
 	private FavoritesManager() {
@@ -127,7 +125,7 @@ public final class FavoritesManager {
 			}
 		}
 
-		return new ItemStack(Items.LARGE_AMETHYST_BUD);
+		return new ItemStack(Blocks.AMETHYST_CLUSTER);
 	}
 
 	public synchronized List<ItemStack> getFavoriteStacks() {
@@ -144,7 +142,7 @@ public final class FavoritesManager {
 	public synchronized List<ItemStack> getDisplayStacksForTab() {
 		List<ItemStack> stacks = getFavoriteStacks();
 		if (stacks.isEmpty()) {
-			stacks.add(new ItemStack(Items.LARGE_AMETHYST_BUD));
+			stacks.add(new ItemStack(Blocks.AMETHYST_CLUSTER));
 		}
 		return stacks;
 	}

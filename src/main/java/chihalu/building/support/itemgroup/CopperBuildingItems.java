@@ -84,11 +84,13 @@ public final class CopperBuildingItems {
 		addWeatheringSet(stacks, "copper_lantern");
 		addWeatheringSet(stacks, "copper_bars");
 		addWeatheringSet(stacks, "copper_torch");
+		addWeatheringSet(stacks, "copper_chest");
 
 		addWaxedWeatheringSet(stacks, "copper_chain");
 		addWaxedWeatheringSet(stacks, "copper_lantern");
 		addWaxedWeatheringSet(stacks, "copper_bars");
 		addWaxedWeatheringSet(stacks, "copper_torch");
+		addWaxedWeatheringSet(stacks, "copper_chest");
 
 		return Collections.unmodifiableList(stacks);
 	}

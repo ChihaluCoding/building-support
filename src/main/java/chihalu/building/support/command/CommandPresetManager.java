@@ -3,7 +3,6 @@ package chihalu.building.support.command;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
@@ -20,14 +19,13 @@ import java.util.List;
 import java.util.Map;
 
 import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.BuildingSupportStorage;
 
 public final class CommandPresetManager {
 	private static final CommandPresetManager INSTANCE = new CommandPresetManager();
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-	private final Path configPath = FabricLoader.getInstance()
-		.getConfigDir()
-		.resolve(BuildingSupport.MOD_ID + "-commands.json");
+	private final Path configPath = BuildingSupportStorage.resolve("commands.json");
 
 	private final Map<Integer, PresetEntry> presets = new LinkedHashMap<>();
 

@@ -78,6 +78,11 @@ jar {
 	}
 }
 
+runClient {
+    jvmArgs '-Xmx4G', '-Xms2G'
+}
+
+
 // configure the maven publication
 publishing {
 	publications {

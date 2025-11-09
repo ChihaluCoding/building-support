@@ -3,7 +3,6 @@ package chihalu.building.support.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 
@@ -13,8 +12,12 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 
 import chihalu.building.support.BuildingSupport;
+import chihalu.building.support.BuildingSupportStorage;
 
 /**
  * Mod蜈ｨ菴薙・險ｭ螳壹ｒ邂｡逅・☆繧九け繝ｩ繧ｹ縲・ */
@@ -22,9 +25,7 @@ public final class BuildingSupportConfig {
 	private static final BuildingSupportConfig INSTANCE = new BuildingSupportConfig();
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	private final Path configPath = FabricLoader.getInstance()
-		.getConfigDir()
-		.resolve(BuildingSupport.MOD_ID + "-config.json");
+	private final Path configPath = BuildingSupportStorage.resolve("config.json");
 
 	private boolean preventIceMelting = false;
 	private boolean autoLightCandles = false;
@@ -32,8 +33,10 @@ public final class BuildingSupportConfig {
 	private HistoryDisplayMode historyDisplayMode = HistoryDisplayMode.PER_WORLD;
 	private VillageSpawnType villageSpawnType = VillageSpawnType.PLAINS;
 	private boolean pottedPlantPickPrefersPot = true;
+	private final EnumMap<ItemGroupOption, Boolean> itemGroupVisibility = new EnumMap<>(ItemGroupOption.class);
 
 	private BuildingSupportConfig() {
+		resetItemGroupVisibility();
 	}
 
 	public static BuildingSupportConfig getInstance() {
@@ -54,6 +57,7 @@ public final class BuildingSupportConfig {
 				this.historyDisplayMode = data.historyDisplayMode == null ? HistoryDisplayMode.PER_WORLD : data.historyDisplayMode;
 				this.villageSpawnType = VillageSpawnType.byId(data.villageSpawnType);
 				this.pottedPlantPickPrefersPot = data.pottedPlantPickPrefersPot;
+				applyItemGroupVisibility(data.itemGroupVisibility);
 			}
 		} catch (IOException | JsonSyntaxException exception) {
 			getLogger().error("險ｭ螳壹ヵ繧｡繧､繝ｫ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆: {}", configPath, exception);
@@ -69,7 +73,8 @@ public final class BuildingSupportConfig {
 				villageSpawnEnabled,
 				historyDisplayMode,
 				villageSpawnType,
-				pottedPlantPickPrefersPot
+				pottedPlantPickPrefersPot,
+				createItemGroupVisibilityData()
 			);
 			try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
@@ -151,6 +156,18 @@ public final class BuildingSupportConfig {
 		}
 	}
 
+	public synchronized boolean isItemGroupEnabled(ItemGroupOption option) {
+		return itemGroupVisibility.getOrDefault(option, true);
+	}
+
+	public synchronized void setItemGroupEnabled(ItemGroupOption option, boolean enabled) {
+		Boolean current = itemGroupVisibility.get(option);
+		if (current == null || current != enabled) {
+			itemGroupVisibility.put(option, enabled);
+			save();
+		}
+	}
+
 	private Logger getLogger() {
 		return BuildingSupport.LOGGER;
 	}
@@ -158,10 +175,11 @@ public final class BuildingSupportConfig {
 	private static final class SerializableData {
 		private boolean preventIceMelting;
 		private boolean autoLightCandles;
-		private HistoryDisplayMode historyDisplayMode;
 		private boolean villageSpawnEnabled;
+		private HistoryDisplayMode historyDisplayMode;
 		private String villageSpawnType = VillageSpawnType.PLAINS.id();
 		private boolean pottedPlantPickPrefersPot = true;
+		private Map<String, Boolean> itemGroupVisibility = new HashMap<>();
 
 		private SerializableData(
 			boolean preventIceMelting,
@@ -169,15 +187,46 @@ public final class BuildingSupportConfig {
 			boolean villageSpawnEnabled,
 			HistoryDisplayMode historyDisplayMode,
 			VillageSpawnType villageSpawnType,
-			boolean pottedPlantPickPrefersPot
+			boolean pottedPlantPickPrefersPot,
+			Map<String, Boolean> itemGroupVisibility
 		) {
 			this.preventIceMelting = preventIceMelting;
 			this.autoLightCandles = autoLightCandles;
-			this.historyDisplayMode = historyDisplayMode;
 			this.villageSpawnEnabled = villageSpawnEnabled;
+			this.historyDisplayMode = historyDisplayMode;
 			this.villageSpawnType = villageSpawnType == null ? VillageSpawnType.PLAINS.id() : villageSpawnType.id();
 			this.pottedPlantPickPrefersPot = pottedPlantPickPrefersPot;
+			if (itemGroupVisibility != null) {
+				this.itemGroupVisibility.putAll(itemGroupVisibility);
+			}
 		}
+	}
+
+	private void resetItemGroupVisibility() {
+		for (ItemGroupOption option : ItemGroupOption.values()) {
+			itemGroupVisibility.put(option, true);
+		}
+	}
+
+	private void applyItemGroupVisibility(Map<String, Boolean> source) {
+		resetItemGroupVisibility();
+		if (source == null) {
+			return;
+		}
+		for (Map.Entry<String, Boolean> entry : source.entrySet()) {
+			ItemGroupOption option = ItemGroupOption.fromId(entry.getKey());
+			if (option != null && entry.getValue() != null) {
+				itemGroupVisibility.put(option, entry.getValue());
+			}
+		}
+	}
+
+	private Map<String, Boolean> createItemGroupVisibilityData() {
+		Map<String, Boolean> map = new HashMap<>();
+		for (ItemGroupOption option : ItemGroupOption.values()) {
+			map.put(option.id(), itemGroupVisibility.getOrDefault(option, true));
+		}
+		return map;
 	}
 
 	public enum HistoryDisplayMode {
@@ -232,6 +281,58 @@ public final class BuildingSupportConfig {
 				}
 			}
 			return PLAINS;
+		}
+	}
+
+	public enum ItemGroupOption {
+		FAVORITES("favorites_tab", "config.building-support.inventory_tab.favorites"),
+		HISTORY("history_tab", "config.building-support.inventory_tab.history"),
+		WOOD_BUILDING("wood_building_tab", "config.building-support.inventory_tab.wood_building"),
+		STONE_BUILDING("stone_building_tab", "config.building-support.inventory_tab.stone_building"),
+		COPPER_BUILDING("copper_building_tab", "config.building-support.inventory_tab.copper_building"),
+		LIGHT_BUILDING("light_building_tab", "config.building-support.inventory_tab.light_building"),
+		NETHER_BUILDING("nether_building_tab", "config.building-support.inventory_tab.nether_building"),
+		END_BUILDING("end_building_tab", "config.building-support.inventory_tab.end_building"),
+		SIGN_SHELF("sign_shelf_tab", "config.building-support.inventory_tab.sign_shelf"),
+		ARMOR_LEATHER("armor_leather_tab", "config.building-support.inventory_tab.armor_leather"),
+		ARMOR_CHAIN("armor_chain_tab", "config.building-support.inventory_tab.armor_chain"),
+		ARMOR_IRON("armor_iron_tab", "config.building-support.inventory_tab.armor_iron"),
+		ARMOR_GOLD("armor_gold_tab", "config.building-support.inventory_tab.armor_gold"),
+		ARMOR_DIAMOND("armor_diamond_tab", "config.building-support.inventory_tab.armor_diamond"),
+		ARMOR_NETHERITE("armor_netherite_tab", "config.building-support.inventory_tab.armor_netherite");
+
+		private final String id;
+		private final String translationKey;
+		private final String tooltipKey;
+
+		ItemGroupOption(String id, String translationKey) {
+			this.id = id;
+			this.translationKey = translationKey;
+			this.tooltipKey = translationKey + ".tooltip";
+		}
+
+		public String id() {
+			return id;
+		}
+
+		public String translationKey() {
+			return translationKey;
+		}
+
+		public String tooltipKey() {
+			return tooltipKey;
+		}
+
+		public static ItemGroupOption fromId(String id) {
+			if (id == null || id.isBlank()) {
+				return null;
+			}
+			for (ItemGroupOption option : values()) {
+				if (option.id.equalsIgnoreCase(id)) {
+					return option;
+				}
+			}
+			return null;
 		}
 	}
 }
