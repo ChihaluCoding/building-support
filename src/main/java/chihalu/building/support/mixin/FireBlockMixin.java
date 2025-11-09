@@ -16,7 +16,7 @@ import net.minecraft.world.WorldView;
 @Mixin(FireBlock.class)
 public class FireBlockMixin {
 	/**
-	 * 延焼防止が有効な場合はFireBlockの拡散処理そのものを中断する。
+	 * 危険建材保護設定が有効な場合は炎が広がる処理そのものを打ち切る。
 	 */
 	@Inject(
 		method = "trySpreadingFire(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;ILnet/minecraft/util/math/random/Random;I)V",
@@ -30,7 +30,7 @@ public class FireBlockMixin {
 	}
 
 	/**
-	 * 燃焼確率を0にしてブロックが着火対象として扱われないようにする。
+	 * 同じ設定がオンのときは燃焼確率を常に0へ固定し、可燃ブロック扱いを防ぐ。
 	 */
 	@Inject(
 		method = "getBurnChance(Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;)I",
