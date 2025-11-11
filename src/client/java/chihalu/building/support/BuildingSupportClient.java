@@ -7,10 +7,12 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
@@ -27,6 +29,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.WorldSavePath;
 import org.lwjgl.glfw.GLFW;
 
+import chihalu.building.support.client.screen.DecoratedArmorPreviewScreen;
 import chihalu.building.support.config.BuildingSupportConfig;
 import chihalu.building.support.config.BuildingSupportConfig.ItemGroupOption;
 import chihalu.building.support.customtabs.CustomTabsManager;
@@ -85,6 +88,12 @@ public class BuildingSupportClient implements ClientModInitializer {
 						handleToggleFavorite(client, creativeScreen);
 					}
 				}
+			});
+			ScreenMouseEvents.allowMouseClick(screen).register((currentScreen, click) -> {
+				if (handleDecoratedPreviewClick(client, currentScreen, click)) {
+					return false;
+				}
+				return true;
 			});
 		});
 
@@ -210,6 +219,26 @@ public class BuildingSupportClient implements ClientModInitializer {
 		}
 	}
 
+	// Ctrl+右クリック時に装飾済み装備のプレビュー画面を開く処理
+	private boolean handleDecoratedPreviewClick(MinecraftClient client, net.minecraft.client.gui.screen.Screen currentScreen, Click click) {
+		if (click.button() != GLFW.GLFW_MOUSE_BUTTON_RIGHT || !isControlDown()) {
+			return false;
+		}
+		if (!(currentScreen instanceof CreativeInventoryScreen creativeScreen)) {
+			return false;
+		}
+		Slot slot = ((HandledScreenAccessor) creativeScreen).utility_toolkit$getFocusedSlot();
+		if (slot == null || !slot.hasStack()) {
+			return false;
+		}
+		ItemStack stack = slot.getStack();
+		if (!DecoratedArmorPreviewScreen.isDecoratedArmor(stack)) {
+			return false;
+		}
+		client.setScreen(new DecoratedArmorPreviewScreen(currentScreen, stack));
+		return true;
+	}
+
 	private static boolean isShiftDown() {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client == null || client.getWindow() == null) {
@@ -217,6 +246,16 @@ public class BuildingSupportClient implements ClientModInitializer {
 		}
 		return InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
 			|| InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+	}
+
+	// Ctrlキーの押下状態をまとめて確認するヘルパー
+	private static boolean isControlDown() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client == null || client.getWindow() == null) {
+			return false;
+		}
+		return InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)
+			|| InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
 	}
 
 	private void registerUsageEvents() {

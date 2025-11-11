@@ -30,6 +30,10 @@
 
   "message.utility-toolkit.favorite.removed": "%2$s から %1$s を削除しました。",
 
+  "screen.utility-toolkit.preview.title": "装飾プレビュー",
+  "screen.utility-toolkit.preview.hint": "マウスドラッグで回転 / Esc で閉じる",
+  "screen.utility-toolkit.preview.close": "閉じる",
+
   "message.utility-toolkit.copy_item_id.success": "アイテムID %s をコピーしました。",
 
   "message.utility-toolkit.copy_item_id.no_item": "カーソル上にコピーできるアイテムがありません。",
