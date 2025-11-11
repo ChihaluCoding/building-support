@@ -15,9 +15,11 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.customtabs.CustomTabsManager;
 
 @Environment(EnvType.CLIENT)
 public class BuildingSupportConfigScreen extends Screen {
@@ -32,6 +34,8 @@ public class BuildingSupportConfigScreen extends Screen {
 	private TabToggleListWidget tabToggleList;
 	private int tabToggleBreadcrumbY = 0;
 	private Text tabToggleBreadcrumbText = Text.empty();
+	private TextFieldWidget customTabNameField;
+	private TextFieldWidget customTabIconField;
 
 	private enum Category {
 		ROOT,
@@ -40,6 +44,7 @@ public class BuildingSupportConfigScreen extends Screen {
 		PICK_BLOCK_CONTROL,
 		SPAWN,
 		INVENTORY_CONTROL,
+		CUSTOM_TABS,
 		OPTIMIZATION,
 		INVENTORY_TAB_TOGGLE
 	}
@@ -53,6 +58,7 @@ public class BuildingSupportConfigScreen extends Screen {
 	protected void init() {
 		openRoot();
 	}
+
 
 	private void openRoot() {
 		currentCategory = Category.ROOT;
@@ -320,6 +326,14 @@ public class BuildingSupportConfigScreen extends Screen {
 			.dimensions(getCenterButtonX(), startY + ROW_SPACING * 2, BUTTON_WIDTH, BUTTON_HEIGHT)
 			.build());
 
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.inventory_control.custom_tabs"),
+			button -> {
+				setFocused(null);
+				openCustomTabsScreen();
+			})
+			.dimensions(getCenterButtonX(), startY + ROW_SPACING * 3, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.back_to_categories"),
 			button -> {
 				setFocused(null);
@@ -396,10 +410,59 @@ public class BuildingSupportConfigScreen extends Screen {
 		setFocused(null);
 	}
 
+	private void openCustomTabsScreen() {
+		currentCategory = Category.CUSTOM_TABS;
+		clearScreen();
+		int fieldWidth = BUTTON_WIDTH * 2 + COLUMN_SPACING;
+		int fieldX = width / 2 - fieldWidth / 2;
+		int baseY = Math.max(60, height / 2 - ROW_SPACING * 2);
+		var config = BuildingSupportConfig.getInstance();
+
+		// 常時表示されるカスタムタブの名前を直接編集できるフィールド
+		customTabNameField = new TextFieldWidget(textRenderer, fieldX, baseY, fieldWidth, BUTTON_HEIGHT, Text.empty());
+		customTabNameField.setMaxLength(32);
+		customTabNameField.setText(config.getCustomTabName());
+		addDrawableChild(customTabNameField);
+
+		int iconFieldY = baseY + ROW_SPACING * 2;
+		customTabIconField = new TextFieldWidget(textRenderer, fieldX, iconFieldY, fieldWidth, BUTTON_HEIGHT, Text.empty());
+		customTabIconField.setMaxLength(128);
+		customTabIconField.setText(config.getCustomTabIconId());
+		customTabIconField.setSuggestion("minecraft:paper");
+		customTabIconField.setTooltip(Tooltip.of(Text.translatable("config.utility-toolkit.custom_tabs.icon_hint")));
+		addDrawableChild(customTabIconField);
+
+		int applyButtonY = iconFieldY + ROW_SPACING;
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.custom_tabs.rename_button"),
+			button -> {
+				config.setCustomTabName(customTabNameField.getText());
+				boolean iconChanged = config.setCustomTabIconId(customTabIconField.getText());
+				if (iconChanged) {
+					CustomTabsManager.getInstance().refreshGroupIcon();
+				}
+				button.setFocused(false);
+				setFocused(null);
+			})
+			.dimensions(getCenterButtonX(), applyButtonY, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.inventory_control.back_to_inventory"),
+			button -> {
+				setFocused(null);
+				openInventoryControl();
+			})
+			.dimensions(getCenterButtonX(), getBottomButtonY(), BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
+		setFocused(null);
+	}
+
 	private void clearScreen() {
 		clearChildren();
 		tabToggleList = null;
 		tabToggleBreadcrumbText = Text.empty();
+		customTabNameField = null;
+		customTabIconField = null;
 	}
 
 	@Override
@@ -412,6 +475,7 @@ public class BuildingSupportConfigScreen extends Screen {
 
 	@Override
 	public void close() {
+		super.close();
 		if (client != null) {
 			client.setScreen(parent);
 		}
@@ -436,6 +500,22 @@ public class BuildingSupportConfigScreen extends Screen {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.utility-toolkit.inventory_control.tab_category"), width / 2, 50, 0xFFFFFF);
 			if (tabToggleList != null && !tabToggleBreadcrumbText.getString().isBlank()) {
 				context.drawCenteredTextWithShadow(textRenderer, tabToggleBreadcrumbText, width / 2, tabToggleBreadcrumbY, 0xFFFFFF);
+			}
+		} else if (currentCategory == Category.CUSTOM_TABS) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.utility-toolkit.inventory_control.custom_tabs"), width / 2, 50, 0xFFFFFF);
+			if (customTabNameField != null) {
+				context.drawCenteredTextWithShadow(textRenderer,
+					Text.translatable("config.utility-toolkit.custom_tabs.name_label"),
+					width / 2,
+					customTabNameField.getY() - 12,
+					0xFFFFFF);
+			}
+			if (customTabIconField != null) {
+				context.drawCenteredTextWithShadow(textRenderer,
+					Text.translatable("config.utility-toolkit.custom_tabs.icon_label"),
+					width / 2,
+					customTabIconField.getY() - 12,
+					0xFFFFFF);
 			}
 		}
 

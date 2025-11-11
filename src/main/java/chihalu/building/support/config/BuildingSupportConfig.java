@@ -3,6 +3,8 @@ package chihalu.building.support.config;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 
@@ -20,9 +22,13 @@ import chihalu.building.support.BuildingSupport;
 import chihalu.building.support.BuildingSupportStorage;
 
 /**
- * Mod蜈ｨ菴薙・險ｭ螳壹ｒ邂｡逅・☆繧九け繝ｩ繧ｹ縲・ */
+ * Mod全体の設定を管理するクラス。
+ */
 public final class BuildingSupportConfig {
 	private static final BuildingSupportConfig INSTANCE = new BuildingSupportConfig();
+	// カスタムタブ名の初期文字列を共通化
+	private static final String DEFAULT_CUSTOM_TAB_NAME = "カスタムタブ";
+	private static final String DEFAULT_CUSTOM_TAB_ICON_ID = "minecraft:paper";
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	private final Path configPath = BuildingSupportStorage.resolve("config.json");
@@ -37,9 +43,12 @@ public final class BuildingSupportConfig {
 	private final EnumMap<ItemGroupOption, Boolean> itemGroupVisibility = new EnumMap<>(ItemGroupOption.class);
 	private int memoListStyle = 1;
 	private boolean disableSignEditScreen = false;
+	private String customTabName = DEFAULT_CUSTOM_TAB_NAME;
+	private String customTabIconId = DEFAULT_CUSTOM_TAB_ICON_ID;
 
 	private BuildingSupportConfig() {
 		resetItemGroupVisibility();
+		resetCustomTabSettings();
 	}
 
 	public static BuildingSupportConfig getInstance() {
@@ -47,6 +56,7 @@ public final class BuildingSupportConfig {
 	}
 
 	public synchronized void reload() {
+		resetCustomTabSettings();
 		if (!Files.exists(configPath)) {
 			return;
 		}
@@ -64,6 +74,8 @@ public final class BuildingSupportConfig {
 				applyItemGroupVisibility(data.itemGroupVisibility);
 				this.memoListStyle = normalizeListStyle(data.memoListStyle);
 				this.disableSignEditScreen = data.disableSignEditScreen;
+				this.customTabName = sanitizeCustomTabName(data.customTabName);
+				this.customTabIconId = sanitizeCustomTabIconId(data.customTabIconId);
 			}
 		} catch (IOException | JsonSyntaxException exception) {
 			getLogger().error("險ｭ螳壹ヵ繧｡繧､繝ｫ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆: {}", configPath, exception);
@@ -83,7 +95,9 @@ public final class BuildingSupportConfig {
 				pottedPlantPickPrefersPot,
 				createItemGroupVisibilityData(),
 				memoListStyle,
-				disableSignEditScreen
+				disableSignEditScreen,
+				customTabName,
+				customTabIconId
 			);
 			try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
@@ -223,6 +237,40 @@ public final class BuildingSupportConfig {
 		}
 	}
 
+	public synchronized String getCustomTabName() {
+		return customTabName;
+	}
+
+	public synchronized void setCustomTabName(String name) {
+		String value = sanitizeCustomTabName(name);
+		if (!value.equals(customTabName)) {
+			customTabName = value;
+			save();
+		}
+	}
+
+	public synchronized String getCustomTabIconId() {
+		return customTabIconId;
+	}
+
+	public synchronized ItemStack getCustomTabIconStack() {
+		Identifier id = Identifier.tryParse(customTabIconId);
+		if (id != null && Registries.ITEM.containsId(id)) {
+			return new ItemStack(Registries.ITEM.get(id));
+		}
+		return ItemStack.EMPTY;
+	}
+
+	public synchronized boolean setCustomTabIconId(String iconId) {
+		String value = sanitizeCustomTabIconId(iconId);
+		if (value.equals(customTabIconId)) {
+			return false;
+		}
+		customTabIconId = value;
+		save();
+		return true;
+	}
+
 	private Logger getLogger() {
 		return BuildingSupport.LOGGER;
 	}
@@ -238,6 +286,8 @@ public final class BuildingSupportConfig {
 		private Map<String, Boolean> itemGroupVisibility = new HashMap<>();
 		private int memoListStyle = 1;
 		private boolean disableSignEditScreen = false;
+		private String customTabName = DEFAULT_CUSTOM_TAB_NAME;
+		private String customTabIconId = DEFAULT_CUSTOM_TAB_ICON_ID;
 
 		private SerializableData(
 			boolean preventIceMelting,
@@ -249,7 +299,9 @@ public final class BuildingSupportConfig {
 			boolean pottedPlantPickPrefersPot,
 			Map<String, Boolean> itemGroupVisibility,
 			int memoListStyle,
-			boolean disableSignEditScreen
+			boolean disableSignEditScreen,
+			String customTabName,
+			String customTabIconId
 		) {
 			this.preventIceMelting = preventIceMelting;
 			this.preventHazardFireSpread = preventHazardFireSpread;
@@ -263,6 +315,8 @@ public final class BuildingSupportConfig {
 			}
 			this.memoListStyle = memoListStyle;
 			this.disableSignEditScreen = disableSignEditScreen;
+			this.customTabName = sanitizeCustomTabName(customTabName);
+			this.customTabIconId = sanitizeCustomTabIconId(customTabIconId);
 		}
 	}
 
@@ -270,6 +324,12 @@ public final class BuildingSupportConfig {
 		for (ItemGroupOption option : ItemGroupOption.values()) {
 			itemGroupVisibility.put(option, true);
 		}
+	}
+
+	private void resetCustomTabSettings() {
+		// 設定ファイルが無い場合でも必ず既定値で開始する
+		customTabName = DEFAULT_CUSTOM_TAB_NAME;
+		customTabIconId = DEFAULT_CUSTOM_TAB_ICON_ID;
 	}
 
 	private static int normalizeListStyle(int style) {
@@ -295,6 +355,22 @@ public final class BuildingSupportConfig {
 			map.put(option.id(), itemGroupVisibility.getOrDefault(option, true));
 		}
 		return map;
+	}
+
+	// 空文字やnullを排除して見た目を保つ
+	private static String sanitizeCustomTabName(String name) {
+		return (name == null || name.isBlank()) ? DEFAULT_CUSTOM_TAB_NAME : name.trim();
+	}
+
+	private static String sanitizeCustomTabIconId(String rawId) {
+		if (rawId == null || rawId.isBlank()) {
+			return DEFAULT_CUSTOM_TAB_ICON_ID;
+		}
+		Identifier id = Identifier.tryParse(rawId.trim());
+		if (id == null || !Registries.ITEM.containsId(id)) {
+			return DEFAULT_CUSTOM_TAB_ICON_ID;
+		}
+		return id.toString();
 	}
 
 	public enum HistoryDisplayMode {

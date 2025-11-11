@@ -16,6 +16,7 @@
   "itemGroup.utility-toolkit.sign_shelf": "看板・棚",
 
   "itemGroup.utility-toolkit.history_building": "履歴",
+  "itemGroup.utility-toolkit.custom_tab": "カスタムタブ",
 
   "key.utility-toolkit.add_favorite": "お気に入りに追加",
 
@@ -115,10 +116,15 @@
   "config.utility-toolkit.history_display_mode.all_world": "全ワールド共通",
 
   "config.utility-toolkit.inventory_control.open_tab_list": "タブ表示設定を開く",
+  "config.utility-toolkit.inventory_control.custom_tabs": "カスタムタブ名",
 
   "config.utility-toolkit.inventory_control.back_to_inventory": "インベントリ制御に戻る",
 
   "config.utility-toolkit.inventory_control.tab_category": "インベントリ制御 - タブ表示",
+  "config.utility-toolkit.custom_tabs.rename_button": "設定を保存",
+  "config.utility-toolkit.custom_tabs.name_label": "表示名",
+  "config.utility-toolkit.custom_tabs.icon_label": "アイコンID",
+  "config.utility-toolkit.custom_tabs.icon_hint": "例: minecraft:paper",
 
   "config.utility-toolkit.inventory_control.tab_path": "インベントリ制御 ▶ タブ表示 ▶ 表示 / 非表示切り替え",
 
@@ -144,6 +150,10 @@
   "command.utility-toolkit.memo.list.empty.command": "コマンドメモは登録されていません。",
   "command.utility-toolkit.memo.list.copy_hint": "クリックするとコマンドをコピーします。",
 
+  "message.utility-toolkit.custom_tab.require_creative": "Shift + B はクリエイティブインベントリ内でのみ使用できます。",
+  "message.utility-toolkit.custom_tab.no_item": "選択中のスロットにアイテムがありません。",
+  "message.utility-toolkit.custom_tab.added": "%2$s に %1$s を追加しました。",
+  "message.utility-toolkit.custom_tab.removed": "%2$s から %1$s を削除しました。",
   "command.utility-toolkit.memo.edited": "メモ「%s」を更新しました。",
 
   "command.utility-toolkit.memo.edit.begin": "メモ「%s」を編集中です。",

@@ -26,11 +26,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import chihalu.building.support.command.CommandPresetManager;
-import chihalu.building.support.command.PresetCommand;
 import chihalu.building.support.command.MemoCommand;
 import chihalu.building.support.command.MemoManager;
+import chihalu.building.support.command.PresetCommand;
 import chihalu.building.support.command.VillageCommand;
 import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.customtabs.CustomTabsManager;
 import chihalu.building.support.favorites.FavoritesManager;
 import chihalu.building.support.history.HistoryManager;
 import chihalu.building.support.itemgroup.CopperBuildingItems;
@@ -46,7 +47,7 @@ import chihalu.building.support.village.VillageSpawnManager;
 public class BuildingSupport implements ModInitializer {
 	public static final String MOD_ID = "utility-toolkit";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final RegistryKey<ItemGroup> FAVORITES_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("a_favorites"));
+	public static final RegistryKey<ItemGroup> FAVORITES_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("a_zfavorites"));
 	public static final RegistryKey<ItemGroup> WOOD_BUILDING_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("b_wood_building"));
 	public static final RegistryKey<ItemGroup> STONE_BUILDING_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("c_stone_building"));
 	public static final RegistryKey<ItemGroup> COPPER_BUILDING_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("d_copper_building"));
@@ -54,6 +55,7 @@ public class BuildingSupport implements ModInitializer {
 	public static final RegistryKey<ItemGroup> NETHER_BUILDING_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("f_nether_building"));
 	public static final RegistryKey<ItemGroup> END_BUILDING_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("g_end_building"));
 	public static final RegistryKey<ItemGroup> SIGN_SHELF_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ga_sign_shelf"));
+	public static final RegistryKey<ItemGroup> CUSTOM_TAB_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("ab_custom_tab"));
 	private static final boolean AUTO_LIGHT_VANILLA_ONLY = true;
 	private static final boolean AUTO_LIGHT_NEIGHBORS = true;
 	public static final RegistryKey<ItemGroup> HISTORY_ITEM_GROUP_KEY = RegistryKey.of(RegistryKeys.ITEM_GROUP, id("a_history_building"));
@@ -70,32 +72,42 @@ public class BuildingSupport implements ModInitializer {
 		config.reload();
 		FavoritesManager favoritesManager = FavoritesManager.getInstance();
 		favoritesManager.reload();
+		CustomTabsManager customTabsManager = CustomTabsManager.getInstance();
+		customTabsManager.reload();
 		CommandPresetManager presetManager = CommandPresetManager.getInstance();
 		presetManager.reload();
 		MemoManager.getInstance().reload();
 		HistoryManager.getInstance().initialize();
 		VillageSpawnManager.getInstance().initialize();
-		registerItemGroups(favoritesManager);
+		registerItemGroups(favoritesManager, customTabsManager);
 		registerCommands(presetManager);
 		registerEvents();
 		LOGGER.info("Utility Toolkit mod initialized");
 	}
 
-	private void registerItemGroups(FavoritesManager manager) {
+	private void registerItemGroups(FavoritesManager favoritesManager, CustomTabsManager customTabsManager) {
 		HistoryManager historyManager = HistoryManager.getInstance();
-			Registry.register(Registries.ITEM_GROUP, FAVORITES_ITEM_GROUP_KEY,
-				FabricItemGroup.builder()
-					.displayName(Text.translatable("itemGroup.utility-toolkit.favorites"))
-					.icon(() -> new ItemStack(Blocks.AMETHYST_CLUSTER))
-					.entries((displayContext, entries) -> manager.populate(entries))
-					.build());
+		Registry.register(Registries.ITEM_GROUP, HISTORY_ITEM_GROUP_KEY,
+			FabricItemGroup.builder()
+				.displayName(Text.translatable("itemGroup.utility-toolkit.history_building"))
+				.icon(() -> new ItemStack(Items.BOOK))
+				.entries((displayContext, entries) -> historyManager.populate(entries))
+				.build());
 
-			Registry.register(Registries.ITEM_GROUP, HISTORY_ITEM_GROUP_KEY,
-				FabricItemGroup.builder()
-					.displayName(Text.translatable("itemGroup.utility-toolkit.history_building"))
-					.icon(() -> new ItemStack(Items.BOOK))
-					.entries((displayContext, entries) -> historyManager.populate(entries))
-					.build());
+		Registry.register(Registries.ITEM_GROUP, FAVORITES_ITEM_GROUP_KEY,
+			FabricItemGroup.builder()
+				.displayName(Text.translatable("itemGroup.utility-toolkit.favorites"))
+				.icon(() -> new ItemStack(Blocks.AMETHYST_CLUSTER))
+				.entries((displayContext, entries) -> favoritesManager.populate(entries))
+				.build());
+
+		ItemGroup customGroup = FabricItemGroup.builder()
+			.displayName(Text.translatable("itemGroup.utility-toolkit.custom_tab"))
+			.icon(customTabsManager::getIconStack)
+			.entries((displayContext, entries) -> customTabsManager.populateEntries(entries))
+			.build();
+		Registry.register(Registries.ITEM_GROUP, CUSTOM_TAB_ITEM_GROUP_KEY, customGroup);
+		customTabsManager.registerGroupInstance(customGroup);
 
 		Registry.register(Registries.ITEM_GROUP, WOOD_BUILDING_ITEM_GROUP_KEY,
 			FabricItemGroup.builder()

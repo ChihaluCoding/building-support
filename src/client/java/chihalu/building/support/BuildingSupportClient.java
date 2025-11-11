@@ -29,6 +29,7 @@ import org.lwjgl.glfw.GLFW;
 
 import chihalu.building.support.config.BuildingSupportConfig;
 import chihalu.building.support.config.BuildingSupportConfig.ItemGroupOption;
+import chihalu.building.support.customtabs.CustomTabsManager;
 import chihalu.building.support.favorites.FavoritesManager;
 import chihalu.building.support.history.HistoryManager;
 import chihalu.building.support.mixin.client.CreativeInventoryScreenInvoker;
@@ -67,14 +68,22 @@ public class BuildingSupportClient implements ClientModInitializer {
 						return;
 					}
 
+					boolean shiftPressed = isShiftDown();
 					if (!(currentScreen instanceof CreativeInventoryScreen creativeScreen)) {
 						if (client.player != null) {
-							client.player.sendMessage(Text.translatable("message.utility-toolkit.favorite.require_creative"), false);
+							String key = shiftPressed
+								? "message.utility-toolkit.custom_tab.require_creative"
+								: "message.utility-toolkit.favorite.require_creative";
+							client.player.sendMessage(Text.translatable(key), false);
 						}
 						return;
 					}
 
-					handleToggleFavorite(client, creativeScreen);
+					if (shiftPressed) {
+						handleToggleCustomTab(client, creativeScreen);
+					} else {
+						handleToggleFavorite(client, creativeScreen);
+					}
 				}
 			});
 		});
@@ -167,6 +176,48 @@ public class BuildingSupportClient implements ClientModInitializer {
 		if (currentTab == favoritesGroup) {
 			((CreativeInventoryScreenInvoker) screen).utility_toolkit$refreshSelectedTab(favoritesStacks);
 		}
+	}
+
+	private void handleToggleCustomTab(MinecraftClient client, CreativeInventoryScreen screen) {
+		Slot slot = ((HandledScreenAccessor) screen).utility_toolkit$getFocusedSlot();
+		if (slot == null || !slot.hasStack()) {
+			if (client.player != null) {
+				client.player.sendMessage(Text.translatable("message.utility-toolkit.custom_tab.no_item"), false);
+			}
+			return;
+		}
+
+		ItemStack stack = slot.getStack();
+		Identifier id = Registries.ITEM.getId(stack.getItem());
+		CustomTabsManager manager = CustomTabsManager.getInstance();
+		boolean added = manager.toggleItem(id);
+		Text itemText = stack.toHoverableText();
+		String tabName = BuildingSupportConfig.getInstance().getCustomTabName();
+		Text tabNameText = Text.literal(tabName).formatted(Formatting.LIGHT_PURPLE);
+
+		if (client.player != null) {
+			String messageKey = added ? "message.utility-toolkit.custom_tab.added" : "message.utility-toolkit.custom_tab.removed";
+			Formatting color = added ? Formatting.GREEN : Formatting.YELLOW;
+			client.player.sendMessage(Text.translatable(messageKey, itemText, tabNameText).formatted(color), false);
+		}
+
+		ItemGroup customGroup = Registries.ITEM_GROUP.get(BuildingSupport.CUSTOM_TAB_ITEM_GROUP_KEY);
+		List<ItemStack> customStacks = manager.getDisplayStacksForTab();
+		replaceGroupStacks(customGroup, customStacks);
+
+		ItemGroup currentTab = CreativeInventoryScreenInvoker.utility_toolkit$getSelectedTab();
+		if (currentTab == customGroup) {
+			((CreativeInventoryScreenInvoker) screen).utility_toolkit$refreshSelectedTab(customStacks);
+		}
+	}
+
+	private static boolean isShiftDown() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client == null || client.getWindow() == null) {
+			return false;
+		}
+		return InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+			|| InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
 	}
 
 	private void registerUsageEvents() {
