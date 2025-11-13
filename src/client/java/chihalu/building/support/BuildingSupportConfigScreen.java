@@ -22,6 +22,7 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 import chihalu.building.support.config.BuildingSupportConfig;
+import chihalu.building.support.config.BuildingSupportConfig.WeatherMode;
 import chihalu.building.support.customtabs.CustomTabsManager;
 
 @Environment(EnvType.CLIENT)
@@ -47,6 +48,7 @@ public class BuildingSupportConfigScreen extends Screen {
 		PICK_BLOCK_CONTROL,
 		SPAWN,
 		INVENTORY_CONTROL,
+		WORLD_SETTINGS,
 		CUSTOM_TABS,
 		OPTIMIZATION,
 		INVENTORY_TAB_TOGGLE
@@ -98,6 +100,11 @@ public class BuildingSupportConfigScreen extends Screen {
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.category.optimization"),
 			button -> openOptimization())
 			.dimensions(rightX, startY + ROW_SPACING * 2, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.category.world_settings"),
+			button -> openWorldSettings())
+			.dimensions(leftX, startY + ROW_SPACING * 3, BUTTON_WIDTH, BUTTON_HEIGHT)
 			.build());
 
 		addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> close())
@@ -195,6 +202,80 @@ public class BuildingSupportConfigScreen extends Screen {
 				});
 		disableSignInput.setTooltip(Tooltip.of(Text.translatable("config.utility-toolkit.disable_sign_edit_screen.tooltip")));
 		addDrawableChild(disableSignInput);
+
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.back_to_categories"),
+			button -> {
+				setFocused(null);
+				openRoot();
+			})
+			.dimensions(getCenterButtonX(), getBottomButtonY(), BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
+		setFocused(null);
+	}
+
+	private void openWorldSettings() {
+		currentCategory = Category.WORLD_SETTINGS;
+		clearScreen();
+		var config = BuildingSupportConfig.getInstance();
+		int leftX = getLeftColumnX();
+		int rightX = getRightColumnX();
+		int baseY = Math.max(60, height / 2 - ROW_SPACING * 2);
+		int labelOffset = textRenderer.fontHeight + 4;
+
+		// 時間固定の有効・無効を切り替えるトグル
+		CyclingButtonWidget<Boolean> fixedTimeToggle = CyclingButtonWidget.onOffBuilder(config.isFixedTimeEnabled())
+			.build(leftX, baseY, BUTTON_WIDTH, BUTTON_HEIGHT,
+				Text.translatable("config.utility-toolkit.world.fixed_time.toggle"),
+				(button, value) -> {
+					BuildingSupportConfig.getInstance().setFixedTimeEnabled(value);
+					button.setFocused(false);
+					setFocused(null);
+				});
+		addDrawableChild(fixedTimeToggle);
+
+		// 時間数値を直接入力するフィールド
+		int timeFieldY = baseY + ROW_SPACING;
+		addDrawableChild(new LabelWidget(leftX, timeFieldY - labelOffset, Text.translatable("config.utility-toolkit.world.fixed_time.value_label")));
+		TextFieldWidget timeField = new TextFieldWidget(textRenderer, leftX, timeFieldY, BUTTON_WIDTH, BUTTON_HEIGHT, Text.empty());
+		timeField.setMaxLength(6);
+		timeField.setText(String.valueOf(config.getFixedTimeValue()));
+		timeField.setChangedListener(value -> timeField.setEditableColor(0xFFFFFFFF));
+		addDrawableChild(timeField);
+
+		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.world.fixed_time.apply"),
+			button -> {
+				if (applyFixedTimeValue(timeField)) {
+					button.setFocused(false);
+					setFocused(null);
+				}
+			})
+			.dimensions(leftX, timeFieldY + ROW_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.build());
+
+		// 天候固定のトグル
+		CyclingButtonWidget<Boolean> fixedWeatherToggle = CyclingButtonWidget.onOffBuilder(config.isFixedWeatherEnabled())
+			.build(rightX, baseY, BUTTON_WIDTH, BUTTON_HEIGHT,
+				Text.translatable("config.utility-toolkit.world.fixed_weather.toggle"),
+				(button, value) -> {
+					BuildingSupportConfig.getInstance().setFixedWeatherEnabled(value);
+					button.setFocused(false);
+					setFocused(null);
+				});
+		addDrawableChild(fixedWeatherToggle);
+
+		// 天候モードを選択するボタン
+		CyclingButtonWidget<WeatherMode> weatherModeButton = CyclingButtonWidget.<WeatherMode>builder(mode -> Text.translatable(mode.translationKey()))
+			.values(WeatherMode.values())
+			.initially(config.getFixedWeatherMode())
+			.build(rightX, baseY + ROW_SPACING, BUTTON_WIDTH, BUTTON_HEIGHT,
+				Text.translatable("config.utility-toolkit.world.fixed_weather.mode"),
+				(button, value) -> {
+					BuildingSupportConfig.getInstance().setFixedWeatherMode(value);
+					button.setFocused(false);
+					setFocused(null);
+				});
+		addDrawableChild(weatherModeButton);
 
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.back_to_categories"),
 			button -> {
@@ -326,7 +407,7 @@ public class BuildingSupportConfigScreen extends Screen {
 				setFocused(null);
 				openInventoryTabToggleList();
 			})
-			.dimensions(getCenterButtonX(), startY + ROW_SPACING * 2, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.dimensions(leftX, startY + ROW_SPACING * 2, BUTTON_WIDTH, BUTTON_HEIGHT)
 			.build());
 
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.inventory_control.custom_tabs"),
@@ -334,7 +415,7 @@ public class BuildingSupportConfigScreen extends Screen {
 				setFocused(null);
 				openCustomTabsScreen();
 			})
-			.dimensions(getCenterButtonX(), startY + ROW_SPACING * 3, BUTTON_WIDTH, BUTTON_HEIGHT)
+			.dimensions(rightX, startY + ROW_SPACING * 2, BUTTON_WIDTH, BUTTON_HEIGHT)
 			.build());
 
 		addDrawableChild(ButtonWidget.builder(Text.translatable("config.utility-toolkit.back_to_categories"),
@@ -352,6 +433,8 @@ public class BuildingSupportConfigScreen extends Screen {
 		currentCategory = Category.INVENTORY_TAB_TOGGLE;
 		clearScreen();
 		tabToggleBreadcrumbText = Text.translatable("config.utility-toolkit.inventory_control.tab_path");
+		int leftX = getLeftColumnX();
+		int rightX = getRightColumnX();
 
 		List<CyclingButtonWidget<Boolean>> toggleWidgets = new ArrayList<>();
 		var config = BuildingSupportConfig.getInstance();
@@ -509,6 +592,8 @@ public class BuildingSupportConfigScreen extends Screen {
 			}
 		} else if (currentCategory == Category.CUSTOM_TABS) {
 			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.utility-toolkit.inventory_control.custom_tabs"), width / 2, 50, 0xFFFFFF);
+		} else if (currentCategory == Category.WORLD_SETTINGS) {
+			context.drawCenteredTextWithShadow(textRenderer, Text.translatable("config.utility-toolkit.category.world_settings"), width / 2, 50, 0xFFFFFF);
 		}
 
 		super.render(context, mouseX, mouseY, delta);
@@ -636,6 +721,25 @@ public class BuildingSupportConfigScreen extends Screen {
 			config.setItemGroupEnabled(option, enabled);
 		}
 		InventoryTabVisibilityController.reloadFromConfig();
+	}
+
+	// 数値フィールドの内容を検証しつつ固定時間を反映するユーティリティ
+	private boolean applyFixedTimeValue(TextFieldWidget field) {
+		String raw = field.getText().trim();
+		if (raw.isEmpty()) {
+			field.setEditableColor(0xFFFF5555);
+			return false;
+		}
+		try {
+			int value = Integer.parseInt(raw);
+			BuildingSupportConfig.getInstance().setFixedTimeValue(value);
+			field.setEditableColor(0xFFFFFFFF);
+			field.setText(String.valueOf(BuildingSupportConfig.getInstance().getFixedTimeValue()));
+			return true;
+		} catch (NumberFormatException exception) {
+			field.setEditableColor(0xFFFF5555);
+			return false;
+		}
 	}
 
 	private class LabelWidget extends ClickableWidget {

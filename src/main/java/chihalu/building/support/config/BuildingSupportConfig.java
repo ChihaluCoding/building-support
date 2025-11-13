@@ -45,6 +45,10 @@ public final class BuildingSupportConfig {
 	private boolean disableSignEditScreen = false;
 	private String customTabName = DEFAULT_CUSTOM_TAB_NAME;
 	private String customTabIconId = DEFAULT_CUSTOM_TAB_ICON_ID;
+	private boolean fixedTimeEnabled = false;
+	private int fixedTimeValue = 6000;
+	private boolean fixedWeatherEnabled = false;
+	private WeatherMode fixedWeatherMode = WeatherMode.CLEAR;
 
 	private BuildingSupportConfig() {
 		resetItemGroupVisibility();
@@ -76,6 +80,10 @@ public final class BuildingSupportConfig {
 				this.disableSignEditScreen = data.disableSignEditScreen;
 				this.customTabName = sanitizeCustomTabName(data.customTabName);
 				this.customTabIconId = sanitizeCustomTabIconId(data.customTabIconId);
+				this.fixedTimeEnabled = data.fixedTimeEnabled;
+				this.fixedTimeValue = sanitizeTimeValue(data.fixedTimeValue);
+				this.fixedWeatherEnabled = data.fixedWeatherEnabled;
+				this.fixedWeatherMode = data.fixedWeatherMode == null ? WeatherMode.CLEAR : data.fixedWeatherMode;
 			}
 		} catch (IOException | JsonSyntaxException exception) {
 			getLogger().error("險ｭ螳壹ヵ繧｡繧､繝ｫ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆: {}", configPath, exception);
@@ -97,7 +105,11 @@ public final class BuildingSupportConfig {
 				memoListStyle,
 				disableSignEditScreen,
 				customTabName,
-				customTabIconId
+				customTabIconId,
+				fixedTimeEnabled,
+				fixedTimeValue,
+				fixedWeatherEnabled,
+				fixedWeatherMode
 			);
 			try (Writer writer = Files.newBufferedWriter(configPath, StandardCharsets.UTF_8)) {
 				gson.toJson(data, writer);
@@ -271,6 +283,52 @@ public final class BuildingSupportConfig {
 		return true;
 	}
 
+	public synchronized boolean isFixedTimeEnabled() {
+		return fixedTimeEnabled;
+	}
+
+	public synchronized void setFixedTimeEnabled(boolean enabled) {
+		if (this.fixedTimeEnabled != enabled) {
+			this.fixedTimeEnabled = enabled;
+			save();
+		}
+	}
+
+	public synchronized int getFixedTimeValue() {
+		return fixedTimeValue;
+	}
+
+	public synchronized void setFixedTimeValue(int time) {
+		int normalized = sanitizeTimeValue(time);
+		if (this.fixedTimeValue != normalized) {
+			this.fixedTimeValue = normalized;
+			save();
+		}
+	}
+
+	public synchronized boolean isFixedWeatherEnabled() {
+		return fixedWeatherEnabled;
+	}
+
+	public synchronized void setFixedWeatherEnabled(boolean enabled) {
+		if (this.fixedWeatherEnabled != enabled) {
+			this.fixedWeatherEnabled = enabled;
+			save();
+		}
+	}
+
+	public synchronized WeatherMode getFixedWeatherMode() {
+		return fixedWeatherMode;
+	}
+
+	public synchronized void setFixedWeatherMode(WeatherMode mode) {
+		WeatherMode resolved = mode == null ? WeatherMode.CLEAR : mode;
+		if (this.fixedWeatherMode != resolved) {
+			this.fixedWeatherMode = resolved;
+			save();
+		}
+	}
+
 	private Logger getLogger() {
 		return BuildingSupport.LOGGER;
 	}
@@ -288,6 +346,10 @@ public final class BuildingSupportConfig {
 		private boolean disableSignEditScreen = false;
 		private String customTabName = DEFAULT_CUSTOM_TAB_NAME;
 		private String customTabIconId = DEFAULT_CUSTOM_TAB_ICON_ID;
+		private boolean fixedTimeEnabled = false;
+		private int fixedTimeValue = 6000;
+		private boolean fixedWeatherEnabled = false;
+		private WeatherMode fixedWeatherMode = WeatherMode.CLEAR;
 
 		private SerializableData(
 			boolean preventIceMelting,
@@ -301,7 +363,11 @@ public final class BuildingSupportConfig {
 			int memoListStyle,
 			boolean disableSignEditScreen,
 			String customTabName,
-			String customTabIconId
+			String customTabIconId,
+			boolean fixedTimeEnabled,
+			int fixedTimeValue,
+			boolean fixedWeatherEnabled,
+			WeatherMode fixedWeatherMode
 		) {
 			this.preventIceMelting = preventIceMelting;
 			this.preventHazardFireSpread = preventHazardFireSpread;
@@ -317,6 +383,10 @@ public final class BuildingSupportConfig {
 			this.disableSignEditScreen = disableSignEditScreen;
 			this.customTabName = sanitizeCustomTabName(customTabName);
 			this.customTabIconId = sanitizeCustomTabIconId(customTabIconId);
+			this.fixedTimeEnabled = fixedTimeEnabled;
+			this.fixedTimeValue = sanitizeTimeValue(fixedTimeValue);
+			this.fixedWeatherEnabled = fixedWeatherEnabled;
+			this.fixedWeatherMode = fixedWeatherMode == null ? WeatherMode.CLEAR : fixedWeatherMode;
 		}
 	}
 
@@ -334,6 +404,14 @@ public final class BuildingSupportConfig {
 
 	private static int normalizeListStyle(int style) {
 		return style >= 1 && style <= 3 ? style : 1;
+	}
+
+	private static int sanitizeTimeValue(int value) {
+		int normalized = value % 24000;
+		if (normalized < 0) {
+			normalized += 24000;
+		}
+		return normalized;
 	}
 
 	private void applyItemGroupVisibility(Map<String, Boolean> source) {
@@ -385,6 +463,22 @@ public final class BuildingSupportConfig {
 
 		public String translationKey() {
 			return "config.utility-toolkit.history_display_mode." + suffix;
+		}
+	}
+
+	public enum WeatherMode {
+		CLEAR("clear"),
+		RAIN("rain"),
+		THUNDER("thunder");
+
+		private final String id;
+
+		WeatherMode(String id) {
+			this.id = id;
+		}
+
+		public String translationKey() {
+			return "config.utility-toolkit.world.weather_mode." + id;
 		}
 	}
 

@@ -75,7 +75,9 @@
   "config.utility-toolkit.category.spawn": "スポーン設定",
 
   "config.utility-toolkit.category.inventory_control": "インベントリ設定",
-  "config.utility-toolkit.category.optimization": "最適化",
+  "config.utility-toolkit.category.optimization": "作業効率化設定",
+
+  "config.utility-toolkit.category.world_settings": "ワールド設定",
 
   "config.utility-toolkit.prevent_ice_melting": "氷の融解を防止",
 
@@ -92,6 +94,15 @@
   "config.utility-toolkit.potted_pick_prefers_pot": "植木鉢の取得優先度変更",
   "config.utility-toolkit.disable_sign_edit_screen": "看板設置時に入力画面を開かない",
   "config.utility-toolkit.disable_sign_edit_screen.tooltip": "看板を設置した直後に開く入力画面をスキップします。WorldEditなどと併用する際の誤操作防止に役立ちます。",
+
+  "config.utility-toolkit.world.fixed_time.toggle": "時間を固定",
+  "config.utility-toolkit.world.fixed_time.value_label": "固定する時間（0〜23999）",
+  "config.utility-toolkit.world.fixed_time.apply": "時間を適用",
+  "config.utility-toolkit.world.fixed_weather.toggle": "天候を固定",
+  "config.utility-toolkit.world.fixed_weather.mode": "天候モード",
+  "config.utility-toolkit.world.weather_mode.clear": "晴れ",
+  "config.utility-toolkit.world.weather_mode.rain": "雨",
+  "config.utility-toolkit.world.weather_mode.thunder": "雷雨",
 
   "config.utility-toolkit.potted_pick_prefers_pot.tooltip": "オンにすると、花が植わった植木鉢をホイールクリックした際に鉢本体を取得します。スニークしながらホイールクリックすると花を取得します。",
 
@@ -119,8 +130,8 @@
 
   "config.utility-toolkit.history_display_mode.all_world": "全ワールド共通",
 
-  "config.utility-toolkit.inventory_control.open_tab_list": "タブ表示設定を開く",
-  "config.utility-toolkit.inventory_control.custom_tabs": "カスタムタブ名",
+  "config.utility-toolkit.inventory_control.open_tab_list": "タブ表示",
+  "config.utility-toolkit.inventory_control.custom_tabs": "カスタムタブ",
 
   "config.utility-toolkit.inventory_control.back_to_inventory": "インベントリ制御に戻る",
 
